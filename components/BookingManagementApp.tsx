@@ -7,6 +7,9 @@ import BookingForm from './BookingForm';
 import Modal from './Modal';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import * as XLSX from 'xlsx';
 
 interface Booking {
     id: number;
@@ -91,7 +94,13 @@ const BookingsTable: React.FC = () => {
             const categoryB = categorizeBooking(b);
 
             if (categoryA !== categoryB) return categoryA - categoryB;
-            return new Date(a.date_from).getTime() - new Date(b.date_from).getTime();
+
+            // Sort by arrival date first
+            const arrivalComparison = new Date(a.date_from).getTime() - new Date(b.date_from).getTime();
+            if (arrivalComparison !== 0) return arrivalComparison;
+
+            // If arrival dates are the same, sort by departure date
+            return new Date(a.date_to).getTime() - new Date(b.date_to).getTime();
         });
     };
 
@@ -222,6 +231,29 @@ const BookingsTable: React.FC = () => {
         return format(date, 'EEE, d MMM'); // Updated format
     };
 
+    const exportToExcel = () => {
+        const worksheet = XLSX.utils.json_to_sheet(filteredBookings.map(booking => ({
+            Name: booking.name,
+            Arrival: formatDate(booking.date_from),
+            Departure: formatDate(booking.date_to),
+            Country: booking.country,
+            Pax: booking.pax,
+            Ladies: booking.ladies,
+            Men: booking.men,
+            Children: booking.children,
+            Teens: booking.teens,
+            Agent: booking.agent,
+            Consultant: booking.consultant,
+            Status: getBookingStatus(booking.date_from, booking.date_to).props.children,
+        })));
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Bookings');
+
+        // Export the workbook
+        XLSX.writeFile(workbook, 'bookings.xlsx');
+    };
+
     // Loading and error states
     if (loading) {
         return (
@@ -251,12 +283,21 @@ const BookingsTable: React.FC = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="border p-2  w-full md:w-64 uppercase text-xs"
                 />
-                <button
-                    onClick={() => openModal()}
-                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white uppercase text-xs  transition-colors"
-                >
-                    New Booking
-                </button>
+                <div className='flex space-x-2'>
+                    {/* Add a button to trigger Excel export */}
+                    <button
+                        onClick={exportToExcel}
+                        className="px-4 py-2  bg-green-500 hover:bg-green-600 text-white uppercase text-xs transition-colors"
+                    >
+                        Export to Excel
+                    </button>
+                    <button
+                        onClick={() => openModal()}
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white uppercase text-xs  transition-colors"
+                    >
+                        New Booking
+                    </button>
+                </div>
             </div>
 
             {/* Confirm Delete Modal */}
@@ -266,9 +307,7 @@ const BookingsTable: React.FC = () => {
             >
                 <div className="px-4 py-2">
                     <h2 className="text-lg font-semibold mb-4">Confirm Delete</h2>
-                    <p className="mb-4 normal-case">Are you sure you want to delete the booking for <u>{deleteConfirmBooking?.name}?</u>
-                        &nbsp;This action is irreversible.
-                    </p>
+                    <p className="mb-4 normal-case">Are you sure you want to delete the booking for <u>{deleteConfirmBooking?.name}</u>?&nbsp;This action is irreversible.</p>
                     <div className="flex justify-end space-x-2">
                         <button
                             onClick={() => setDeleteConfirmBooking(null)}
@@ -296,7 +335,7 @@ const BookingsTable: React.FC = () => {
             </Modal>
 
             {/* Bookings Table */}
-            <div className="bg-white overflow-hidden">
+            <div id="bookings-table" className="bg-white overflow-hidden">
                 <table className="w-full border-collapse">
                     <thead>
                         <tr className="bg-gray-50">

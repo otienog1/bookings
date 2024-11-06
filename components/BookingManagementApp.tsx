@@ -5,10 +5,8 @@ import { format, isBefore, isAfter } from 'date-fns';
 import React from 'react';
 import BookingForm from './BookingForm';
 import Modal from './Modal';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
 
 interface Booking {
@@ -265,12 +263,14 @@ const BookingsTable: React.FC = () => {
 
     return (
         <div className="p-2 mx-auto">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center my-4">
                 <h1 className="text-xl font-semibold uppercase">Booking Management</h1>
+                <div className='text-xs uppercase'>Version 0.1</div>
             </div>
 
             {error && (
                 <Alert className="mb-4 bg-red-50 border-red-200">
+                    <AlertTitle>Heads up!</AlertTitle>
                     <AlertDescription className="text-red-800">{error}</AlertDescription>
                 </Alert>
             )}

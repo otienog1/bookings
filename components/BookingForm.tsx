@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { format } from 'date-fns';
 
 interface Booking {
     id: number;
@@ -43,7 +44,11 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
 
     useEffect(() => {
         if (booking) {
-            setFormData(booking);
+            setFormData({
+                ...booking,
+                date_from: format(new Date(booking.date_from), 'yyyy-MM-dd'),
+                date_to: format(new Date(booking.date_to), 'yyyy-MM-dd')
+            });
         }
     }, [booking]);
 
@@ -86,6 +91,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
 
             {error && (
                 <Alert className="mb-4 bg-red-50 border-red-200">
+                    <AlertTitle>Heads Up!</AlertTitle>
                     <AlertDescription className="text-red-800">{error}</AlertDescription>
                 </Alert>
             )}

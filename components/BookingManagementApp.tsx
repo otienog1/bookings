@@ -6,6 +6,7 @@ import React from 'react';
 import BookingForm from './BookingForm';
 import Modal from './Modal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+// import { DeleteIcon } from 'lucide-react';
 import { Loader } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -255,7 +256,7 @@ const BookingsTable: React.FC = () => {
     // Loading and error states
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-64">
+            <div className="flex items-center justify-center h-screen">
                 <Loader className="w-6 h-6 animate-spin text-blue-500" />
             </div>
         );
@@ -304,6 +305,7 @@ const BookingsTable: React.FC = () => {
             <Modal
                 isOpen={!!deleteConfirmBooking}
                 onClose={() => setDeleteConfirmBooking(null)}
+                backdropClick={true}
             >
                 <div className="px-4 py-2">
                     <h2 className="text-lg font-semibold mb-4">Confirm Delete</h2>
@@ -317,7 +319,7 @@ const BookingsTable: React.FC = () => {
                         </button>
                         <button
                             onClick={() => deleteConfirmBooking && handleDeleteBooking(deleteConfirmBooking)}
-                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white"
+                            className="px-4 py-2 bg-red-500 hover:`bg-red-600 text-white"
                         >
                             Delete
                         </button>
@@ -326,7 +328,7 @@ const BookingsTable: React.FC = () => {
             </Modal>
 
             {/* Booking Form Modal */}
-            <Modal isOpen={isModalOpen} onClose={closeModal}>
+            <Modal isOpen={isModalOpen} onClose={closeModal} backdropClick={false}>
                 <BookingForm
                     booking={editingBooking}
                     onSave={handleSaveBooking}

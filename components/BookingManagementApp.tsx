@@ -46,7 +46,7 @@ const BookingsTable: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
     const [deleteConfirmBooking, setDeleteConfirmBooking] = useState<Booking | null>(null);
-    const bookingURL = "http://localhost:3010/booking";
+    const bookingURL = "http://localhost:5000/booking";
 
     // Fetch bookings
     const fetchBookings = async () => {

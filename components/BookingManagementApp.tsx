@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 // import { DeleteIcon } from 'lucide-react';
 import { Loader } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import UILoader from './UILoader';
 
 interface Booking {
     id: number;
@@ -45,7 +46,7 @@ const BookingsTable: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
     const [deleteConfirmBooking, setDeleteConfirmBooking] = useState<Booking | null>(null);
-    const bookingURL = "http://localhost:5000/booking";
+    const bookingURL = "http://localhost:3010/booking";
 
     // Fetch bookings
     const fetchBookings = async () => {
@@ -256,9 +257,7 @@ const BookingsTable: React.FC = () => {
     // Loading and error states
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-screen">
-                <Loader className="w-6 h-6 animate-spin text-blue-500" />
-            </div>
+            <UILoader />
         );
     }
 

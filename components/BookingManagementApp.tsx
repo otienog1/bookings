@@ -7,7 +7,7 @@ import BookingForm from './BookingForm';
 import Modal from './Modal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 // import { DeleteIcon } from 'lucide-react';
-import { Loader } from 'lucide-react';
+// import { Loader } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import UILoader from './UILoader';
 

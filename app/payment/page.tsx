@@ -110,9 +110,9 @@ const SafariPaymentForm: React.FC = () => {
     };
 
     // Centralized error management
-    const addError = (field: string, message: string) => {
-        setErrors(prev => ({ ...prev, [field]: message }));
-    };
+    // const addError = (field: string, message: string) => {
+    //     setErrors(prev => ({ ...prev, [field]: message }));
+    // };
 
     const clearError = (field: string) => {
         setErrors(prev => {

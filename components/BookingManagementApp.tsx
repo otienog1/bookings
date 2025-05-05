@@ -53,8 +53,8 @@ const BookingsTable: React.FC = () => {
     const [showOnlyMyBookings, setShowOnlyMyBookings] = useState(false);
     const { token, isAuthenticated, isAdmin, user } = useAuth();
 
-    const bookingURL = "http://localhost:5000/booking";
-    // const bookingURL = "https://bookingsendpoint.onrender.com/booking";
+    // const bookingURL = "http://localhost:5000/booking";
+    const bookingURL = "https://bookingsendpoint.onrender.com/booking";
 
     // Fetch bookings
     const fetchBookings = async () => {

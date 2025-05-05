@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
     
     try {
-      const response = await fetch('http://localhost:5000/auth/login', {
+      const response = await fetch('https://bookingsendpoint.onrender.com/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

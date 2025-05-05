@@ -50,7 +50,7 @@ const BookingsTable: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
     const [deleteConfirmBooking, setDeleteConfirmBooking] = useState<Booking | null>(null);
-    const [showOnlyMyBookings, setShowOnlyMyBookings] = useState(false);
+    const [showOnlyMyBookings, setShowOnlyMyBookings] = useState(true);
     const { token, isAuthenticated, isAdmin, user } = useAuth();
 
     // const bookingURL = "http://localhost:5000/booking";
@@ -66,17 +66,27 @@ const BookingsTable: React.FC = () => {
                     'Authorization': `Bearer ${token}`
                 }
             });
-
+    
             if (!response.ok) {
                 throw new Error(`Failed to fetch bookings: ${response.statusText}`);
             }
-
+    
             const data: BookingsResponse = await response.json();
             const sortedBookings = sortBookingsByDate(data.bookings);
-
+    
             setBookings(sortedBookings);
-            setFilteredBookings(sortedBookings);
-            groupBookingsByYearMonth(sortedBookings);
+            
+            // Apply initial filtering based on showOnlyMyBookings state
+            const initialFiltered = sortedBookings.filter(booking => {
+                const isComplete = (new Date(booking.date_from) < new Date() && new Date(booking.date_to) < new Date());
+                // Only show current user's bookings if showOnlyMyBookings is true
+                const isUserBooking = showOnlyMyBookings ? booking.user_id === user?.id : true;
+                
+                return !isComplete && isUserBooking;
+            });
+            
+            setFilteredBookings(initialFiltered);
+            groupBookingsByYearMonth(initialFiltered);
         } catch (error) {
             setError(error instanceof Error ? error.message : 'Failed to fetch bookings');
         } finally {
@@ -88,7 +98,7 @@ const BookingsTable: React.FC = () => {
         if (isAuthenticated && token) {
             fetchBookings();
         }
-    }, [isAuthenticated, token]);
+    }, [isAuthenticated, token, showOnlyMyBookings]);
 
     // Sort and filter bookings
     const sortBookingsByDate = (bookingsToSort: Booking[]): Booking[] => {
@@ -127,7 +137,7 @@ const BookingsTable: React.FC = () => {
                 booking.country,
                 booking.created_by
             ].map(field => field?.toLowerCase() || '');
-
+    
             const isComplete = (new Date(booking.date_from) < new Date() && new Date(booking.date_to) < new Date());
             const matchesSearch = searchFields.some(field => field.includes(searchTerm.toLowerCase()));
             
@@ -136,7 +146,7 @@ const BookingsTable: React.FC = () => {
             
             return !isComplete && matchesSearch && isUserBooking;
         });
-
+    
         setFilteredBookings(filtered);
         groupBookingsByYearMonth(filtered);
     }, [searchTerm, bookings, showOnlyMyBookings, user?.id]);
@@ -308,13 +318,6 @@ const BookingsTable: React.FC = () => {
         }
     };
 
-    // Loading and error states
-    if (loading) {
-        return (
-            <UILoader />
-        );
-    }
-
     return (
         <div className="px-4 mx-auto">
 
@@ -326,7 +329,7 @@ const BookingsTable: React.FC = () => {
             )}
 
             <div className="my-4 flex flex-col md:flex-row justify-between gap-2">
-                <div className="flex flex-col md:flex-row gap-2">
+                <div className="flex flex-col md:flex-row gap-2 items-center">
                     <input
                         type="text"
                         placeholder="Search bookings..."
@@ -334,16 +337,15 @@ const BookingsTable: React.FC = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="border p-2 w-full md:w-64 uppercase text-xs rounded"
                     />
-                    <div className="flex items-center">
-                        <input
-                            type="checkbox"
-                            id="myBookings"
-                            checked={showOnlyMyBookings}
-                            onChange={() => setShowOnlyMyBookings(!showOnlyMyBookings)}
-                            className="mr-2"
-                        />
-                        <label htmlFor="myBookings" className="text-xs uppercase">Show only my bookings</label>
-                    </div>
+                    
+                    <select
+                        value={showOnlyMyBookings ? 'my' : 'all'}
+                        onChange={(e) => setShowOnlyMyBookings(e.target.value === 'my')}
+                        className="border p-2 text-xs uppercase rounded"
+                    >
+                        <option value="my">My Bookings</option>
+                        <option value="all">All Bookings</option>
+                    </select>
                 </div>
                 <div className='flex space-x-2'>
                     {isAdmin && (
@@ -439,7 +441,15 @@ const BookingsTable: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {Object.entries(groupedBookings).length > 0 ? (
+                        {loading ? (
+                            <tr>
+                                <td colSpan={isAdmin ? 14 : 13} className="py-8 px-3 text-center border">
+                                    <div className="flex justify-center items-center">
+                                        <UILoader />
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : Object.entries(groupedBookings).length > 0 ? (
                             Object.entries(groupedBookings).map(([year, months]) => (
                                 <React.Fragment key={year}>
                                     <tr>

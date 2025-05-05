@@ -119,7 +119,7 @@ const BookingsTable: React.FC = () => {
     };
 
     useEffect(() => {
-        let filtered = bookings.filter(booking => {
+        const filtered = bookings.filter(booking => {
             const searchFields = [
                 booking.name,
                 booking.agent,

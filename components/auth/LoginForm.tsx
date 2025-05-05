@@ -7,8 +7,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 const LoginForm: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isLoading, error, clearError } = useAuth();
-
+  // const { login, isLoading, error, clearError } = useAuth();
+  const { login, isLoading, error } = useAuth();
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await login(username, password);

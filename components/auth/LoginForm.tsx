@@ -1,19 +1,47 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useRouter } from 'next/navigation';
+import UILoader from '@/components/UILoader';
 
 const LoginForm: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  // const { login, isLoading, error, clearError } = useAuth();
-  const { login, isLoading, error } = useAuth();
+  const { login, isLoading, error, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const [pageLoading, setPageLoading] = useState(true);
+  
+  // Check authentication status on initial load
+  useEffect(() => {
+    // Short timeout to ensure auth state is properly loaded from localStorage
+    const checkAuth = setTimeout(() => {
+      if (isAuthenticated) {
+        router.push('/');
+      } else {
+        setPageLoading(false);
+      }
+    }, 100);
+    
+    return () => clearTimeout(checkAuth);
+  }, [isAuthenticated, router]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await login(username, password);
   };
+
+  // Show loading state while checking authentication
+  if (pageLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-100">
+        <div className="text-center">
+          <UILoader text='Loading...' />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">

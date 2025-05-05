@@ -443,7 +443,7 @@ const BookingsTable: React.FC = () => {
                             <tr>
                                 <td colSpan={isAdmin ? 14 : 13} className="py-8 px-3 text-center border">
                                     <div className="flex justify-center items-center">
-                                        <UILoader />
+                                        <UILoader text='Loading data...' />
                                     </div>
                                 </td>
                             </tr>

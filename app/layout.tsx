@@ -13,6 +13,13 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+
+import { Poppins } from 'next/font/google'
+ 
+// If loading a variable font, you don't need to specify the font weight
+const poppins = Poppins({ weight: ['400'], subsets: ['latin'] })
+
+
 export const metadata: Metadata = {
   title: "Bookings Management",
   description: "Safari bookings management application",
@@ -26,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${poppins.className} antialiased`}
       >
         {children}
       </body>

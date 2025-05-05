@@ -348,14 +348,6 @@ const BookingsTable: React.FC = () => {
                     </select>
                 </div>
                 <div className='flex space-x-2'>
-                    {isAdmin && (
-                        <button
-                            onClick={exportToExcel}
-                            className="rounded px-4 py-2 bg-green-500 hover:bg-green-600 text-white uppercase text-xs transition-colors"
-                        >
-                            Export to Excel
-                        </button>
-                    )}
                     <button
                         onClick={() => openModal()}
                         className="rounded px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white uppercase text-xs transition-colors"
@@ -371,6 +363,12 @@ const BookingsTable: React.FC = () => {
                             id="csvImport"
                         />
                     )}
+                    <button
+                            onClick={exportToExcel}
+                            className="rounded px-4 py-2 bg-green-500 hover:bg-green-600 text-white uppercase text-xs transition-colors"
+                        >
+                            Export to Excel
+                        </button>
                     {isAdmin && (
                         <label 
                             htmlFor="csvImport" 

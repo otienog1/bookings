@@ -3,27 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { format } from 'date-fns';
+import { Booking, BookingFormProps } from '@/types/BookingTypes';
+import { Agent } from '@/types/AgentTypes';
+// import { useAuth } from '@/components/auth/AuthContext';
 
-interface Booking {
-    id: number;
-    name: string;
-    date_from: string;
-    date_to: string;
-    country: string;
-    pax: number;
-    ladies: number;
-    men: number;
-    children: number;
-    teens: number;
-    agent: string;
-    consultant: string;
-}
-
-interface BookingFormProps {
-    booking: Booking | null;
-    onSave: (booking: Booking) => void;
-    onCancel: () => void;
-}
+// const { token, isAuthenticated, isAdmin, user } = useAuth();
 
 const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) => {
     const [formData, setFormData] = useState<Booking>({
@@ -38,12 +22,38 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
         children: 0,
         teens: 0,
         agent: '',
+        agent_id: 0,
         consultant: ''
     });
     const [error, setError] = useState<string>('');
+    const [agents, setAgents] = useState<Agent[]>([]);
+
+    // Fetch agents for the dropdown
+    useEffect(() => {
+        const fetchAgents = async () => {
+            try {
+                // const response = await fetch('http://localhost:5000/agent/fetch');
+                const response = await fetch('https://bookingsendpoint.onrender.com/agent/fetch', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setAgents(data.agents);
+                }
+            } catch (error) {
+                console.error('Failed to fetch agents:', error);
+            }
+        };
+
+        fetchAgents();
+    }, []);
 
     useEffect(() => {
         if (booking) {
+            // Handle both agent_id and agent string for backward compatibility
             setFormData({
                 ...booking,
                 date_from: format(new Date(booking.date_from), 'yyyy-MM-dd'),
@@ -52,9 +62,11 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
         }
     }, [booking]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
-        const processedValue = type === 'number' ? parseInt(value) || 0 : value;
+        const processedValue = (type === 'number' || name === 'agent_id') 
+            ? parseInt(value) || 0 
+            : value;
         setFormData(prev => ({ ...prev, [name]: processedValue }));
     };
 
@@ -69,6 +81,12 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
         const totalPax = formData.ladies + formData.men + formData.children + formData.teens;
         if (totalPax !== formData.pax) {
             setError('Total of ladies, men, children, and teens must equal total pax');
+            return false;
+        }
+
+        // Validate agent
+        if (!formData.agent_id) {
+            setError('Please select an agent');
             return false;
         }
 
@@ -132,7 +150,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
                     />
                 </label>
                 <label>
-                    <span>Country</span>
+                    <span>Destination</span>
                     <input
                         name="country"
                         value={formData.country}
@@ -209,14 +227,20 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
                 </label>
                 <label>
                     <span>Agent</span>
-                    <input
-                        name="agent"
-                        value={formData.agent}
+                    <select
+                        name="agent_id"
+                        value={formData.agent_id}
                         onChange={handleChange}
-                        placeholder="Agent"
                         required
                         className="border p-2 mb-2 w-full uppercase text-xs"
-                    />
+                    >
+                        <option value="">Select Agent</option>
+                        {agents.map(agent => (
+                            <option key={agent.id} value={agent.id}>
+                                {agent.name}
+                            </option>
+                        ))}
+                    </select>
                 </label>
                 <label>
                     <span>Consultant</span>

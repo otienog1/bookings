@@ -6,39 +6,12 @@ import React from 'react';
 import BookingForm from './BookingForm';
 import Modal from './Modal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-// import { DeleteIcon } from 'lucide-react';
-// import { Loader } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import UILoader from './UILoader';
 
 import { useAuth } from './auth/AuthContext';
-
-interface Booking {
-    id: number;
-    name: string;
-    date_from: string;
-    date_to: string;
-    country: string;
-    pax: number;
-    ladies: number;
-    men: number;
-    children: number;
-    teens: number;
-    agent: string;
-    consultant: string;
-    user_id?: number;
-    created_by?: string;
-}
-
-interface BookingsResponse {
-    bookings: Booking[];
-}
-
-interface GroupedBookings {
-    [key: string]: {
-        [key: string]: Booking[];
-    };
-}
+import { Booking, BookingsResponse, GroupedBookings } from '@/types/BookingTypes';
+import { Agent } from '@/types/AgentTypes';
 
 const BookingsTable: React.FC = () => {
     const [bookings, setBookings] = useState<Booking[]>([]);
@@ -51,10 +24,33 @@ const BookingsTable: React.FC = () => {
     const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
     const [deleteConfirmBooking, setDeleteConfirmBooking] = useState<Booking | null>(null);
     const [showOnlyMyBookings, setShowOnlyMyBookings] = useState(true);
+    const [agents, setAgents] = useState<Agent[]>([]);
     const { token, isAuthenticated, isAdmin, user } = useAuth();
 
-    // const bookingURL = "http://localhost:5000/booking";
-    const bookingURL = "https://bookingsendpoint.onrender.com/booking";
+    // const baseURL = "http://localhost:5000";
+    const baseURL = "https://bookingsendpoint.onrender.com";
+    const bookingURL = `${baseURL}/booking`;
+    const agentURL = `${baseURL}/agent`;
+
+    // Fetch agents
+    const fetchAgents = async () => {
+        try {
+            const response = await fetch(`${agentURL}/fetch`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch agents: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            setAgents(data.agents);
+        } catch (error) {
+            console.error("Error fetching agents:", error);
+        }
+    };
 
     // Fetch bookings
     const fetchBookings = async () => {
@@ -72,7 +68,17 @@ const BookingsTable: React.FC = () => {
             }
     
             const data: BookingsResponse = await response.json();
-            const sortedBookings = sortBookingsByDate(data.bookings);
+            
+            // Process bookings to add agent names from the agents array
+            const processedBookings = data.bookings.map(booking => {
+                const agent = agents.find(a => a.id === booking.agent_id);
+                return {
+                    ...booking,
+                    agent: agent ? agent.name : 'Unknown Agent'
+                };
+            });
+            
+            const sortedBookings = sortBookingsByDate(processedBookings);
     
             setBookings(sortedBookings);
             
@@ -96,9 +102,15 @@ const BookingsTable: React.FC = () => {
 
     useEffect(() => {
         if (isAuthenticated && token) {
+            fetchAgents();
+        }
+    }, [isAuthenticated, token]);
+
+    useEffect(() => {
+        if (isAuthenticated && token && agents.length > 0) {
             fetchBookings();
         }
-    }, [isAuthenticated, token, showOnlyMyBookings]);
+    }, [isAuthenticated, token, showOnlyMyBookings, agents]);
 
     // Sort and filter bookings
     const sortBookingsByDate = (bookingsToSort: Booking[]): Booking[] => {
@@ -198,13 +210,8 @@ const BookingsTable: React.FC = () => {
 
             const savedBooking = await response.json();
 
-            setBookings(prev => {
-                const newBookings = isEditing
-                    ? prev.map(b => b.id === savedBooking.booking.id ? savedBooking.booking : b)
-                    : [...prev, savedBooking.booking];
-                return sortBookingsByDate(newBookings);
-            });
-
+            // After saving, refresh the bookings to get updated data
+            await fetchBookings();
             closeModal();
         } catch (error) {
             setError(error instanceof Error ? error.message : 'Failed to save booking');
@@ -295,7 +302,6 @@ const BookingsTable: React.FC = () => {
     const importBookings = async (file: File) => {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('user_id', user?.id?.toString() || '');
         
         try {
             setError('');

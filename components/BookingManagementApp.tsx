@@ -208,7 +208,7 @@ const BookingsTable: React.FC = () => {
                 throw new Error(`Failed to ${isEditing ? 'update' : 'create'} booking`);
             }
 
-            const savedBooking = await response.json();
+            // const savedBooking = await response.json();
 
             // After saving, refresh the bookings to get updated data
             await fetchBookings();

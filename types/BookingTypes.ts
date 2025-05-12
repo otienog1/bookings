@@ -27,7 +27,7 @@ export interface GroupedBookings {
 }
 
 export interface BookingFormProps {
-    token: string;
+    // token: string;
     booking: Booking | null;
     onSave: (booking: Booking) => void;
     onCancel: () => void;

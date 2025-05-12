@@ -2,6 +2,10 @@
 
 import React from 'react';
 import { useAuth } from '@/components/auth/AuthContext';
+import Link from 'next/link';
+import { Users, LogOut, NotebookText } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -9,6 +13,7 @@ interface AppLayoutProps {
 
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { user, logout, isAuthenticated } = useAuth();
+  const pathname = usePathname();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -20,11 +25,31 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               <span className="text-xs">
                 Welcome, {user?.first_name || user?.username} ({user?.role})
               </span>
+
+              <Link 
+                    href="/" 
+                    className={`flex items-center px-3 py-1 text-xs rounded transition-colors hover:bg-white hover:text-black ${
+                        pathname === '/' ? 'bg-white font-medium text-black' : ''
+                    }`}
+                >
+                    <NotebookText className="h-4 w-4 mr-2" />
+                    <span>Bookings</span>
+                </Link>
+                <Link 
+                    href="/agents" 
+                    className={`flex items-center px-3 py-1 text-xs rounded transition-colors hover:bg-white hover:text-black ${
+                        pathname === '/agents' ? 'bg-white font-medium text-black' : ''
+                    }`}
+                >
+                    <Users className="h-4 w-4 mr-2" />
+                    <span>Agents</span>
+                </Link>
               <button
                 onClick={logout}
-                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 text-xs rounded transition-colors"
+                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 text-xs transition-colors flex items-center rounded"
               >
-                Logout
+                <LogOut className="h-4 w-4 mr-2" />
+                <span>Logout</span>
               </button>
             </div>
           </div>

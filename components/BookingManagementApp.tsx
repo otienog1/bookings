@@ -110,7 +110,7 @@ const BookingsTable: React.FC = () => {
         if (isAuthenticated && token && agents.length > 0) {
             fetchBookings();
         }
-    }, [isAuthenticated, token, showOnlyMyBookings, agents]);
+    }, [isAuthenticated, token, agents]);
 
     // Sort and filter bookings
     const sortBookingsByDate = (bookingsToSort: Booking[]): Booking[] => {

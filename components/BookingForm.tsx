@@ -5,7 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { format } from 'date-fns';
 import { Booking, BookingFormProps } from '@/types/BookingTypes';
 import { Agent } from '@/types/AgentTypes';
-// import { useAuth } from '@/components/auth/AuthContext';
+import { Select } from '@headlessui/react';
 
 // const { token, isAuthenticated, isAdmin, user } = useAuth();
 
@@ -225,13 +225,14 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
                         className="border p-2 mb-2 w-full uppercase text-xs"
                     />
                 </label>
-                <label>
+                <label className='flex flex-col'>
                     <span>Agent</span>
-                    <select
+                    <Select
                         name="agent_id"
                         value={formData.agent_id}
                         onChange={handleChange}
                         required
+                        aria-label='Select Agent'
                         className="border p-2 mb-2 w-full uppercase text-xs"
                     >
                         <option value="">Select Agent</option>
@@ -240,7 +241,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
                                 {agent.name}
                             </option>
                         ))}
-                    </select>
+                    </Select>
                 </label>
                 <label>
                     <span>Consultant</span>
@@ -248,7 +249,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
                         name="consultant"
                         value={formData.consultant}
                         onChange={handleChange}
-                        placeholder="Consultant"
+                        // placeholder={user}
                         required
                         className="border p-2 mb-2 w-full uppercase text-xs"
                     />

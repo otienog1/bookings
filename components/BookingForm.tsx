@@ -35,9 +35,9 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
             try {
                 const data = await api.get('https://bookingsendpoint.onrender.com/agent/fetch', token);
                 setAgents(data.agents);
-            } catch (error: any) {
+            } catch (error) {
                 console.error('Failed to fetch agents:', error);
-                if (error.status !== 401) {
+                if (typeof error === 'object' && error !== null && 'status' in error && (error as any).status !== 401) {
                     setError('Failed to load agents');
                 }
             }

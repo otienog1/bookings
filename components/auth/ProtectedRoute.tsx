@@ -45,7 +45,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             <div className="flex justify-center items-center min-h-screen">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-                    <p>You don't have permission to access this page.</p>
+                    <p>You don&apos;t have permission to access this page.</p>
                 </div>
             </div>
         );

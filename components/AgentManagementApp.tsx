@@ -43,9 +43,9 @@ const AgentManagementApp: React.FC = () => {
 
             setAgents(sortedAgents);
             applyFilters(sortedAgents);
-        } catch (error: any) {
-            if (error.status !== 401) {
-                setError(error.message || 'Failed to fetch agents');
+        } catch (error) {
+            if (typeof error === 'object' && error !== null && 'status' in error && (error as any).status !== 401) {
+                setError((error as any).message || 'Failed to fetch agents');
             }
         } finally {
             setLoading(false);
@@ -92,9 +92,9 @@ const AgentManagementApp: React.FC = () => {
 
             await fetchAgents();
             closeModal();
-        } catch (error: any) {
-            if (error.status !== 401) {
-                setError(error.message || 'Failed to save agent');
+        } catch (error) {
+            if (typeof error === 'object' && error !== null && 'status' in error && (error as any).status !== 401) {
+                setError((error as any).message || 'Failed to save agent');
             }
         }
     };
@@ -106,9 +106,9 @@ const AgentManagementApp: React.FC = () => {
 
             setAgents(prev => prev.filter(a => a.id !== agent.id));
             setDeleteConfirmAgent(null);
-        } catch (error: any) {
-            if (error.status !== 401) {
-                setError(error.message || 'Failed to delete agent');
+        } catch (error) {
+            if (typeof error === 'object' && error !== null && 'status' in error && (error as any).status !== 401) {
+                setError((error as any).message || 'Failed to delete agent');
             }
         }
     };
@@ -171,8 +171,12 @@ const AgentManagementApp: React.FC = () => {
             }
 
             fetchAgents();
-        } catch (error: any) {
-            setError(error.message || 'Failed to import agents');
+        } catch (error) {
+            if (typeof error === 'object' && error !== null && 'message' in error) {
+                setError((error as { message?: string }).message || 'Failed to import agents');
+            } else {
+                setError('Failed to import agents');
+            }
         }
     };
 

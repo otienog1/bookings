@@ -37,10 +37,10 @@ const BookingsTable: React.FC = () => {
         try {
             const data = await api.get(`${agentURL}/fetch`, token);
             setAgents(data.agents);
-        } catch (error: any) {
+        } catch (error) {
             console.error("Error fetching agents:", error);
-            if (error.status !== 401) {
-                setError(error.message || 'Failed to fetch agents');
+            if (typeof error === 'object' && error !== null && 'status' in error && (error as any).status !== 401) {
+                setError((error as any).message || 'Failed to fetch agents');
             }
         }
     };
@@ -77,9 +77,9 @@ const BookingsTable: React.FC = () => {
 
             setFilteredBookings(initialFiltered);
             groupBookingsByYearMonth(initialFiltered);
-        } catch (error: any) {
-            if (error.status !== 401) {
-                setError(error.message || 'Failed to fetch bookings');
+        } catch (error) {
+            if (typeof error === 'object' && error !== null && 'status' in error && (error as any).status !== 401) {
+                setError((error as any).message || 'Failed to fetch bookings');
             }
         } finally {
             setLoading(false);
@@ -186,9 +186,9 @@ const BookingsTable: React.FC = () => {
 
             await fetchBookings();
             closeModal();
-        } catch (error: any) {
-            if (error.status !== 401) {
-                setError(error.message || 'Failed to save booking');
+        } catch (error) {
+            if (typeof error === 'object' && error !== null && 'status' in error && (error as any).status !== 401) {
+                setError((error as any).message || 'Failed to save booking');
             }
         }
     };
@@ -200,9 +200,9 @@ const BookingsTable: React.FC = () => {
 
             setBookings(prev => prev.filter(b => b.id !== booking.id));
             setDeleteConfirmBooking(null);
-        } catch (error: any) {
-            if (error.status !== 401) {
-                setError(error.message || 'Failed to delete booking');
+        } catch (error) {
+            if (typeof error === 'object' && error !== null && 'status' in error && (error as any).status !== 401) {
+                setError((error as any).message || 'Failed to delete booking');
             }
         }
     };
@@ -288,8 +288,12 @@ const BookingsTable: React.FC = () => {
             }
 
             fetchBookings();
-        } catch (error: any) {
-            setError(error.message || 'Failed to import bookings');
+        } catch (error) {
+            if (typeof error === 'object' && error !== null && 'message' in error) {
+                setError((error as any).message || 'Failed to import bookings');
+            } else {
+                setError('Failed to import bookings');
+            }
         }
     };
 

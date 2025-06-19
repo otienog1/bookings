@@ -185,9 +185,12 @@ const BookingsTable: React.FC = () => {
                 user_id: user?.id
             };
 
-            const response = isEditing
-                ? await api.put(url, formattedBooking, token)
-                : await api.post(url, formattedBooking, token);
+            // Remove response variable since it's not being used
+            if (isEditing) {
+                await api.put(url, formattedBooking, token);
+            } else {
+                await api.post(url, formattedBooking, token);
+            }
 
             await fetchBookings();
             closeModal();

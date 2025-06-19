@@ -6,8 +6,8 @@ import { format } from 'date-fns';
 import { Booking, BookingFormProps } from '@/types/BookingTypes';
 import { Agent } from '@/types/AgentTypes';
 import { Select } from '@headlessui/react';
-
-// const { token, isAuthenticated, isAdmin, user } = useAuth();
+import { api } from '@/utils/api'; // Add this import
+import { useAuth } from './auth/AuthContext'; // Add this import
 
 const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) => {
     const [formData, setFormData] = useState<Booking>({
@@ -27,29 +27,26 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
     });
     const [error, setError] = useState<string>('');
     const [agents, setAgents] = useState<Agent[]>([]);
+    const { token } = useAuth(); // Add this
 
-    // Fetch agents for the dropdown
+    // Updated fetch agents with API utility
     useEffect(() => {
         const fetchAgents = async () => {
             try {
-                // const response = await fetch('http://localhost:5000/agent/fetch');
-                const response = await fetch('https://bookingsendpoint.onrender.com/agent/fetch', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    setAgents(data.agents);
-                }
-            } catch (error) {
+                const data = await api.get('https://bookingsendpoint.onrender.com/agent/fetch', token);
+                setAgents(data.agents);
+            } catch (error: any) {
                 console.error('Failed to fetch agents:', error);
+                if (error.status !== 401) {
+                    setError('Failed to load agents');
+                }
             }
         };
 
-        fetchAgents();
-    }, []);
+        if (token) {
+            fetchAgents();
+        }
+    }, [token]);
 
     useEffect(() => {
         if (booking) {
@@ -64,8 +61,8 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
-        const processedValue = (type === 'number' || name === 'agent_id') 
-            ? parseInt(value) || 0 
+        const processedValue = (type === 'number' || name === 'agent_id')
+            ? parseInt(value) || 0
             : value;
         setFormData(prev => ({ ...prev, [name]: processedValue }));
     };
@@ -249,7 +246,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
                         name="consultant"
                         value={formData.consultant}
                         onChange={handleChange}
-                        // placeholder={user}
+                        placeholder="Consultant"
                         required
                         className="border p-2 mb-2 w-full uppercase text-xs"
                     />

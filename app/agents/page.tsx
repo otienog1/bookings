@@ -6,6 +6,7 @@ import LoginForm from '@/components/auth/LoginForm';
 import AppLayout from '../AppLayout';
 import { useAuth } from '@/components/auth/AuthContext';
 import React from 'react';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 // Separate component to handle authentication state
 function AgentManagementContent() {
@@ -17,7 +18,13 @@ function AgentManagementContent() {
 
     return (
         <div className="container mx-auto p-6">
-            {isAuthenticated ? <AgentManagementApp /> : <LoginForm />}
+            {isAuthenticated ? (
+                <ProtectedRoute>
+                    <AgentManagementApp />
+                </ProtectedRoute>
+            ) : (
+                <LoginForm />
+            )}
         </div>
     );
 }

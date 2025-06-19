@@ -7,6 +7,7 @@ import Modal from './Modal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import * as XLSX from 'xlsx';
 import UILoader from './UILoader';
+import { api } from '@/utils/api'; // Add this import
 
 import { useAuth } from './auth/AuthContext';
 import { Agent } from '@/types/AgentTypes';
@@ -24,36 +25,28 @@ const AgentManagementApp: React.FC = () => {
     const [showInactive, setShowInactive] = useState(false);
     const { token, isAuthenticated, isAdmin, user } = useAuth();
 
-    // const baseURL = "http://localhost:5000";
     const baseURL = "https://bookingsendpoint.onrender.com";
     const agentURL = `${baseURL}/agent`;
 
-    // Fetch agents
+    // Updated fetch agents with API utility
     const fetchAgents = async () => {
         try {
             setLoading(true);
             setError('');
-            const response = await fetch(`${agentURL}/fetch?show_inactive=${showInactive}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
 
-            if (!response.ok) {
-                throw new Error(`Failed to fetch agents: ${response.statusText}`);
-            }
+            const data = await api.get(`${agentURL}/fetch?show_inactive=${showInactive}`, token);
 
-            const data = await response.json();
-            
             // Sort agents alphabetically by name
-            const sortedAgents = data.agents.sort((a: Agent, b: Agent) => 
+            const sortedAgents = data.agents.sort((a: Agent, b: Agent) =>
                 a.name.localeCompare(b.name)
             );
-            
+
             setAgents(sortedAgents);
             applyFilters(sortedAgents);
-        } catch (error) {
-            setError(error instanceof Error ? error.message : 'Failed to fetch agents');
+        } catch (error: any) {
+            if (error.status !== 401) {
+                setError(error.message || 'Failed to fetch agents');
+            }
         } finally {
             setLoading(false);
         }
@@ -75,10 +68,10 @@ const AgentManagementApp: React.FC = () => {
                 agent.country,
                 agent.phone
             ].map(field => field?.toLowerCase() || '');
-            
+
             return searchFields.some(field => field.includes(searchTerm.toLowerCase()));
         });
-        
+
         setFilteredAgents(filtered);
     };
 
@@ -86,52 +79,37 @@ const AgentManagementApp: React.FC = () => {
         applyFilters(agents);
     }, [searchTerm, agents]);
 
-    // CRUD Operations
+    // Updated CRUD Operations with API utility
     const handleSaveAgent = async (agent: Agent) => {
         try {
             setError('');
             const isEditing = !!agent.id;
             const url = isEditing ? `${agentURL}/edit/${agent.id}` : `${agentURL}/create`;
-            const method = isEditing ? 'PUT' : 'POST';
 
-            const response = await fetch(url, {
-                method,
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(agent)
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to ${isEditing ? 'update' : 'create'} agent`);
-            }
+            const response = isEditing
+                ? await api.put(url, agent, token)
+                : await api.post(url, agent, token);
 
             await fetchAgents();
             closeModal();
-        } catch (error) {
-            setError(error instanceof Error ? error.message : 'Failed to save agent');
+        } catch (error: any) {
+            if (error.status !== 401) {
+                setError(error.message || 'Failed to save agent');
+            }
         }
     };
 
     const handleDeleteAgent = async (agent: Agent) => {
         try {
             setError('');
-            const response = await fetch(`${agentURL}/delete/${agent.id}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to delete agent');
-            }
+            await api.delete(`${agentURL}/delete/${agent.id}`, token);
 
             setAgents(prev => prev.filter(a => a.id !== agent.id));
             setDeleteConfirmAgent(null);
-        } catch (error) {
-            setError(error instanceof Error ? error.message : 'Failed to delete agent');
+        } catch (error: any) {
+            if (error.status !== 401) {
+                setError(error.message || 'Failed to delete agent');
+            }
         }
     };
 
@@ -161,14 +139,13 @@ const AgentManagementApp: React.FC = () => {
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Agents');
 
-        // Export the workbook
         XLSX.writeFile(workbook, 'agents.xlsx');
     };
 
     const importAgents = async (file: File) => {
         const formData = new FormData();
         formData.append('file', file);
-        
+
         try {
             setError('');
             const response = await fetch(`${agentURL}/import`, {
@@ -178,21 +155,24 @@ const AgentManagementApp: React.FC = () => {
                 },
                 body: formData
             });
-            
+
             if (!response.ok) {
-                throw new Error('Failed to import agents');
+                const data = await response.json();
+                if (response.status === 401) {
+                    return; // Let AuthContext handle the redirect
+                }
+                throw new Error(data.error || 'Failed to import agents');
             }
-            
+
             const result = await response.json();
-            
+
             if (result.errors > 0) {
                 setError(`Imported ${result.imported} agents, but encountered ${result.errors} errors.`);
             }
-            
-            fetchAgents(); // Refresh the list after import
-            
-        } catch (error) {
-            setError(error instanceof Error ? error.message : 'Failed to import agents');
+
+            fetchAgents();
+        } catch (error: any) {
+            setError(error.message || 'Failed to import agents');
         }
     };
 
@@ -216,12 +196,12 @@ const AgentManagementApp: React.FC = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="border p-2 w-full md:w-64 text-xs rounded"
                     />
-                    
+
                     {isAdmin && (
                         <label className="flex items-center space-x-2">
-                            <input 
-                                type="checkbox" 
-                                checked={showInactive} 
+                            <input
+                                type="checkbox"
+                                checked={showInactive}
                                 onChange={(e) => setShowInactive(e.target.checked)}
                             />
                             <span className="text-xs">Show Inactive Agents</span>
@@ -233,7 +213,7 @@ const AgentManagementApp: React.FC = () => {
                         onClick={() => openModal()}
                         className="flex items-center rounded px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white uppercase text-xs transition-colors"
                     >
-                        <UserPlus className="h-4 w-4 mr-2"/>
+                        <UserPlus className="h-4 w-4 mr-2" />
                         <span>New Agent</span>
                     </button>
                     <button
@@ -251,8 +231,8 @@ const AgentManagementApp: React.FC = () => {
                                 className="sr-only"
                                 id="csvImport"
                             />
-                            <label 
-                                htmlFor="csvImport" 
+                            <label
+                                htmlFor="csvImport"
                                 className="rounded px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white uppercase text-xs transition-colors cursor-pointer"
                             >
                                 Import CSV
@@ -270,7 +250,7 @@ const AgentManagementApp: React.FC = () => {
             >
                 <div className="px-4 py-2">
                     <h2 className="text-lg font-semibold mb-4">Confirm Delete</h2>
-                    <p className="mb-4 normal-case">Are you sure you want to delete the agent <u>{deleteConfirmAgent?.name}</u>?<br/>This action is irreversible.</p>
+                    <p className="mb-4 normal-case">Are you sure you want to delete the agent <u>{deleteConfirmAgent?.name}</u>?<br />This action is irreversible.</p>
                     <div className="flex justify-end space-x-2">
                         <button
                             onClick={() => setDeleteConfirmAgent(null)}
@@ -336,7 +316,7 @@ const AgentManagementApp: React.FC = () => {
                                             {agent.is_active ? 'Active' : 'Inactive'}
                                         </span>
                                     </td>
-                                    {isAdmin && (                                
+                                    {isAdmin && (
                                         <td className="border py-2 px-3 text-xs text-center">
                                             <div className="flex justify-center space-x-2">
                                                 {(isAdmin || agent.user_id === user?.id) && (

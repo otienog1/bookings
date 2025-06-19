@@ -8,6 +8,7 @@ import Modal from './Modal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import * as XLSX from 'xlsx';
 import UILoader from './UILoader';
+import { api } from '@/utils/api'; // Add this import
 
 import { useAuth } from './auth/AuthContext';
 import { Booking, BookingsResponse, GroupedBookings } from '@/types/BookingTypes';
@@ -27,48 +28,31 @@ const BookingsTable: React.FC = () => {
     const [agents, setAgents] = useState<Agent[]>([]);
     const { token, isAuthenticated, isAdmin, user } = useAuth();
 
-    // const baseURL = "http://localhost:5000";
     const baseURL = "https://bookingsendpoint.onrender.com";
     const bookingURL = `${baseURL}/booking`;
     const agentURL = `${baseURL}/agent`;
 
-    // Fetch agents
+    // Updated fetch agents with API utility
     const fetchAgents = async () => {
         try {
-            const response = await fetch(`${agentURL}/fetch`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch agents: ${response.statusText}`);
-            }
-
-            const data = await response.json();
+            const data = await api.get(`${agentURL}/fetch`, token);
             setAgents(data.agents);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error fetching agents:", error);
+            if (error.status !== 401) {
+                setError(error.message || 'Failed to fetch agents');
+            }
         }
     };
 
-    // Fetch bookings
+    // Updated fetch bookings with API utility
     const fetchBookings = async () => {
         try {
             setLoading(true);
             setError('');
-            const response = await fetch(`${bookingURL}/fetch`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-    
-            if (!response.ok) {
-                throw new Error(`Failed to fetch bookings: ${response.statusText}`);
-            }
-    
-            const data: BookingsResponse = await response.json();
-            
+
+            const data: BookingsResponse = await api.get(`${bookingURL}/fetch`, token);
+
             // Process bookings to add agent names from the agents array
             const processedBookings = data.bookings.map(booking => {
                 const agent = agents.find(a => a.id === booking.agent_id);
@@ -77,24 +61,26 @@ const BookingsTable: React.FC = () => {
                     agent: agent ? agent.name : 'Unknown Agent'
                 };
             });
-            
+
             const sortedBookings = sortBookingsByDate(processedBookings);
-    
+
             setBookings(sortedBookings);
-            
+
             // Apply initial filtering based on showOnlyMyBookings state
             const initialFiltered = sortedBookings.filter(booking => {
                 const isComplete = (new Date(booking.date_from) < new Date() && new Date(booking.date_to) < new Date());
                 // Only show current user's bookings if showOnlyMyBookings is true
                 const isUserBooking = showOnlyMyBookings ? booking.user_id === user?.id : true;
-                
+
                 return !isComplete && isUserBooking;
             });
-            
+
             setFilteredBookings(initialFiltered);
             groupBookingsByYearMonth(initialFiltered);
-        } catch (error) {
-            setError(error instanceof Error ? error.message : 'Failed to fetch bookings');
+        } catch (error: any) {
+            if (error.status !== 401) {
+                setError(error.message || 'Failed to fetch bookings');
+            }
         } finally {
             setLoading(false);
         }
@@ -149,16 +135,16 @@ const BookingsTable: React.FC = () => {
                 booking.country,
                 booking.created_by
             ].map(field => field?.toLowerCase() || '');
-    
+
             const isComplete = (new Date(booking.date_from) < new Date() && new Date(booking.date_to) < new Date());
             const matchesSearch = searchFields.some(field => field.includes(searchTerm.toLowerCase()));
-            
+
             // Filter for user's own bookings if the toggle is on
             const isUserBooking = showOnlyMyBookings ? booking.user_id === user?.id : true;
-            
+
             return !isComplete && matchesSearch && isUserBooking;
         });
-    
+
         setFilteredBookings(filtered);
         groupBookingsByYearMonth(filtered);
     }, [searchTerm, bookings, showOnlyMyBookings, user?.id]);
@@ -180,62 +166,44 @@ const BookingsTable: React.FC = () => {
         setGroupedBookings(grouped);
     };
 
-    // CRUD Operations
+    // Updated CRUD Operations with API utility
     const handleSaveBooking = async (booking: Booking) => {
         try {
             setError('');
             const isEditing = !!booking.id;
             const url = isEditing ? `${bookingURL}/edit/${booking.id}` : `${bookingURL}/create`;
-            const method = isEditing ? 'PUT' : 'POST';
 
             const formattedBooking = {
                 ...booking,
                 date_from: format(new Date(booking.date_from), 'MM/dd/yyyy'),
                 date_to: format(new Date(booking.date_to), 'MM/dd/yyyy'),
-                user_id: user?.id // Add user_id to the payload
+                user_id: user?.id
             };
 
-            const response = await fetch(url, {
-                method,
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(formattedBooking)
-            });
+            const response = isEditing
+                ? await api.put(url, formattedBooking, token)
+                : await api.post(url, formattedBooking, token);
 
-            if (!response.ok) {
-                throw new Error(`Failed to ${isEditing ? 'update' : 'create'} booking`);
-            }
-
-            // const savedBooking = await response.json();
-
-            // After saving, refresh the bookings to get updated data
             await fetchBookings();
             closeModal();
-        } catch (error) {
-            setError(error instanceof Error ? error.message : 'Failed to save booking');
+        } catch (error: any) {
+            if (error.status !== 401) {
+                setError(error.message || 'Failed to save booking');
+            }
         }
     };
 
     const handleDeleteBooking = async (booking: Booking) => {
         try {
             setError('');
-            const response = await fetch(`${bookingURL}/delete/${booking.id}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to delete booking');
-            }
+            await api.delete(`${bookingURL}/delete/${booking.id}`, token);
 
             setBookings(prev => prev.filter(b => b.id !== booking.id));
             setDeleteConfirmBooking(null);
-        } catch (error) {
-            setError(error instanceof Error ? error.message : 'Failed to delete booking');
+        } catch (error: any) {
+            if (error.status !== 401) {
+                setError(error.message || 'Failed to delete booking');
+            }
         }
     };
 
@@ -269,10 +237,9 @@ const BookingsTable: React.FC = () => {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) {
             console.error(`Invalid date string: ${dateString}`);
-            return ''; // Return an empty string or handle the error as needed
+            return '';
         }
-        // Format to "DD, D MMM"
-        return format(date, 'EEE, d MMM'); // Updated format
+        return format(date, 'EEE, d MMM');
     };
 
     const exportToExcel = () => {
@@ -295,14 +262,13 @@ const BookingsTable: React.FC = () => {
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Bookings');
 
-        // Export the workbook
         XLSX.writeFile(workbook, 'bookings.xlsx');
     };
 
     const importBookings = async (file: File) => {
         const formData = new FormData();
         formData.append('file', file);
-        
+
         try {
             setError('');
             const response = await fetch(`${bookingURL}/import`, {
@@ -312,15 +278,18 @@ const BookingsTable: React.FC = () => {
                 },
                 body: formData
             });
-            
+
             if (!response.ok) {
-                throw new Error('Failed to import bookings');
+                const data = await response.json();
+                if (response.status === 401) {
+                    return; // Let AuthContext handle the redirect
+                }
+                throw new Error(data.error || 'Failed to import bookings');
             }
-            
-            fetchBookings(); // Refresh the list after import
-            
-        } catch (error) {
-            setError(error instanceof Error ? error.message : 'Failed to import bookings');
+
+            fetchBookings();
+        } catch (error: any) {
+            setError(error.message || 'Failed to import bookings');
         }
     };
 
@@ -343,7 +312,7 @@ const BookingsTable: React.FC = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="border p-2 w-full md:w-64 uppercase text-xs rounded"
                     />
-                    
+
                     <select
                         value={showOnlyMyBookings ? 'my' : 'all'}
                         onChange={(e) => setShowOnlyMyBookings(e.target.value === 'my')}
@@ -370,14 +339,14 @@ const BookingsTable: React.FC = () => {
                         />
                     )}
                     <button
-                            onClick={exportToExcel}
-                            className="rounded px-4 py-2 bg-green-500 hover:bg-green-600 text-white uppercase text-xs transition-colors"
-                        >
-                            Export to Excel
-                        </button>
+                        onClick={exportToExcel}
+                        className="rounded px-4 py-2 bg-green-500 hover:bg-green-600 text-white uppercase text-xs transition-colors"
+                    >
+                        Export to Excel
+                    </button>
                     {isAdmin && (
-                        <label 
-                            htmlFor="csvImport" 
+                        <label
+                            htmlFor="csvImport"
                             className="rounded px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white uppercase text-xs transition-colors cursor-pointer"
                         >
                             Import CSV

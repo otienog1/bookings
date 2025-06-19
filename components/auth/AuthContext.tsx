@@ -17,31 +17,59 @@ interface User {
 interface AuthContextType {
     user: User | null;
     token: string | null;
-    login: (username: string, password: string) => Promise<void>;
+    login: (username: string, password: string, rememberMe?: boolean) => Promise<void>;
     logout: () => void;
+    refreshToken: () => Promise<boolean>;
     isLoading: boolean;
     error: string | null;
     clearError: () => void;
     isAuthenticated: boolean;
     isAdmin: boolean;
     checkTokenExpiry: () => boolean;
+    rememberMe: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Create a custom fetch wrapper that handles 401 responses
-const createAuthenticatedFetch = (logout: () => void) => {
+// Create a custom fetch wrapper that handles 401 responses and token refresh
+const createAuthenticatedFetch = (logout: () => void, refreshToken: () => Promise<boolean>) => {
     const originalFetch = window.fetch;
+    let isRefreshing = false;
+    let refreshPromise: Promise<boolean> | null = null;
 
     return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-        const response = await originalFetch(input, init);
+        let response = await originalFetch(input, init);
 
         // Check if the response is 401 (Unauthorized)
         if (response.status === 401) {
-            // Check if the error is due to token expiration
             const data = await response.clone().json().catch(() => ({}));
-            if (data.error && (data.error.includes('expired') || data.error.includes('Token'))) {
-                // Token has expired, logout the user
+
+            if (data.error && data.error.includes('expired')) {
+                // Avoid multiple simultaneous refresh attempts
+                if (!isRefreshing) {
+                    isRefreshing = true;
+                    refreshPromise = refreshToken();
+                }
+
+                // Wait for the refresh to complete
+                const refreshed = await refreshPromise;
+                isRefreshing = false;
+                refreshPromise = null;
+
+                if (refreshed) {
+                    // Retry the original request with the new token
+                    const newToken = localStorage.getItem('authToken');
+                    if (newToken && init?.headers) {
+                        const headers = new Headers(init.headers);
+                        headers.set('Authorization', `Bearer ${newToken}`);
+                        response = await originalFetch(input, { ...init, headers });
+                    }
+                } else {
+                    // Refresh failed, logout
+                    logout();
+                }
+            } else {
+                // Other auth error, logout
                 logout();
             }
         }
@@ -53,8 +81,10 @@ const createAuthenticatedFetch = (logout: () => void) => {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
+    const [refreshTokenValue, setRefreshTokenValue] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [rememberMe, setRememberMe] = useState(false);
     const router = useRouter();
 
     // Function to decode JWT and check expiration
@@ -62,12 +92,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (!token) return false;
 
         try {
-            // Decode token without verification (since we don't have the secret on frontend)
             const decoded = jwt.decode(token) as { exp: number } | null;
 
             if (!decoded || !decoded.exp) return false;
 
-            // Check if token is expired (exp is in seconds, Date.now() is in milliseconds)
             const isExpired = decoded.exp * 1000 < Date.now();
 
             return !isExpired;
@@ -80,16 +108,54 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const logout = () => {
         setUser(null);
         setToken(null);
+        setRefreshTokenValue(null);
+        setRememberMe(false);
         localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
-        router.push('/'); // Redirect to home/login page
+        localStorage.removeItem('rememberMe');
+        router.push('/');
+    };
+
+    // Refresh token function
+    const refreshToken = async (): Promise<boolean> => {
+        const currentRefreshToken = localStorage.getItem('refreshToken');
+
+        if (!currentRefreshToken) return false;
+
+        try {
+            const response = await fetch('https://bookingsendpoint.onrender.com/auth/refresh', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${currentRefreshToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ remember_me: rememberMe })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+
+                setToken(data.token);
+                setUser(data.user);
+
+                // Update stored values
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+
+                return true;
+            }
+        } catch (error) {
+            console.error('Token refresh failed:', error);
+        }
+
+        return false;
     };
 
     // Override global fetch with our authenticated version
     useEffect(() => {
-        window.fetch = createAuthenticatedFetch(logout);
+        window.fetch = createAuthenticatedFetch(logout, refreshToken);
 
-        // Cleanup: restore original fetch when component unmounts
         return () => {
             window.fetch = window.fetch;
         };
@@ -98,30 +164,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Initialize auth state from localStorage on mount
     useEffect(() => {
         const storedToken = localStorage.getItem('authToken');
+        const storedRefreshToken = localStorage.getItem('refreshToken');
         const storedUser = localStorage.getItem('user');
+        const storedRememberMe = localStorage.getItem('rememberMe') === 'true';
 
         if (storedToken && storedUser) {
-            // Check if the stored token is still valid
             setToken(storedToken);
-
-            // Temporarily set token to check expiry
-            const tempToken = storedToken;
+            setRefreshTokenValue(storedRefreshToken);
+            setRememberMe(storedRememberMe);
 
             try {
-                const decoded = jwt.decode(tempToken) as { exp: number } | null;
+                const decoded = jwt.decode(storedToken) as { exp: number } | null;
 
                 if (decoded && decoded.exp) {
                     const isExpired = decoded.exp * 1000 < Date.now();
 
                     if (isExpired) {
-                        // Token is expired, clear storage and don't set state
-                        logout();
+                        // Try to refresh the token
+                        refreshToken().then(success => {
+                            if (!success) {
+                                logout();
+                            } else {
+                                setUser(JSON.parse(localStorage.getItem('user') || '{}'));
+                            }
+                        });
                     } else {
-                        // Token is valid, set the state
                         setUser(JSON.parse(storedUser));
                     }
                 } else {
-                    // Invalid token format, logout
                     logout();
                 }
             } catch (error) {
@@ -131,22 +201,46 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, []);
 
-    // Set up interval to check token expiry periodically
+    // Set up interval to refresh token before expiry
     useEffect(() => {
         if (token) {
-            // Check token expiry every minute
-            const interval = setInterval(() => {
-                if (!checkTokenExpiry()) {
-                    console.log('Token expired, logging out...');
-                    logout();
+            const checkAndRefresh = () => {
+                try {
+                    const decoded = jwt.decode(token) as { exp: number } | null;
+
+                    if (decoded && decoded.exp) {
+                        const expiryTime = decoded.exp * 1000;
+                        const currentTime = Date.now();
+                        const timeUntilExpiry = expiryTime - currentTime;
+
+                        // Refresh token when less than 5 minutes remaining
+                        if (timeUntilExpiry > 0 && timeUntilExpiry < 5 * 60 * 1000) {
+                            refreshToken();
+                        } else if (timeUntilExpiry <= 0) {
+                            // Token already expired, try to refresh
+                            refreshToken().then(success => {
+                                if (!success) {
+                                    logout();
+                                }
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error in token refresh check:', error);
                 }
-            }, 60000); // Check every minute
+            };
+
+            // Check every minute
+            const interval = setInterval(checkAndRefresh, 60000);
+
+            // Also check immediately
+            checkAndRefresh();
 
             return () => clearInterval(interval);
         }
     }, [token]);
 
-    const login = async (username: string, password: string) => {
+    const login = async (username: string, password: string, rememberMe: boolean = false) => {
         setIsLoading(true);
         setError(null);
 
@@ -156,7 +250,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify({ username, password, remember_me: rememberMe }),
             });
 
             const data = await response.json();
@@ -167,10 +261,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
             setToken(data.token);
             setUser(data.user);
+            setRememberMe(rememberMe);
+
+            if (data.refresh_token) {
+                setRefreshTokenValue(data.refresh_token);
+                localStorage.setItem('refreshToken', data.refresh_token);
+            }
 
             // Store in localStorage
             localStorage.setItem('authToken', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
+            localStorage.setItem('rememberMe', rememberMe.toString());
 
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -188,12 +289,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         token,
         login,
         logout,
+        refreshToken,
         isLoading,
         error,
         clearError,
         isAuthenticated: !!token && checkTokenExpiry(),
         isAdmin: user?.role === 'admin',
-        checkTokenExpiry
+        checkTokenExpiry,
+        rememberMe
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

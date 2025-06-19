@@ -1,4 +1,3 @@
-// components/auth/SessionExpiryWarning.tsx
 "use client"
 
 import React, { useEffect, useState } from 'react';
@@ -7,9 +6,10 @@ import jwt from 'jsonwebtoken';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export const SessionExpiryWarning: React.FC = () => {
-    const { token, logout } = useAuth();
+    const { token, logout, refreshToken, rememberMe } = useAuth();
     const [showWarning, setShowWarning] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState<number>(0);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     useEffect(() => {
         if (!token) {
@@ -54,11 +54,16 @@ export const SessionExpiryWarning: React.FC = () => {
 
         // Update countdown every second when warning is shown
         let countdownInterval: NodeJS.Timeout;
-        if (showWarning) {
+        if (showWarning && !isRefreshing) {
             countdownInterval = setInterval(() => {
                 setTimeRemaining(prev => {
                     if (prev <= 1) {
-                        logout();
+                        // Try to auto-refresh if remember me is enabled
+                        if (rememberMe) {
+                            handleExtendSession();
+                        } else {
+                            logout();
+                        }
                         return 0;
                     }
                     return prev - 1;
@@ -70,12 +75,25 @@ export const SessionExpiryWarning: React.FC = () => {
             clearInterval(interval);
             if (countdownInterval) clearInterval(countdownInterval);
         };
-    }, [token, logout, showWarning]);
+    }, [token, logout, showWarning, isRefreshing, rememberMe]);
 
     const handleExtendSession = async () => {
-        // In a real implementation, you would call an API endpoint to refresh the token
-        // For now, we'll just reload the page which will trigger a re-login
-        window.location.reload();
+        setIsRefreshing(true);
+        try {
+            const success = await refreshToken();
+            if (success) {
+                setShowWarning(false);
+                setTimeRemaining(0);
+            } else {
+                // Refresh failed, will logout
+                logout();
+            }
+        } catch (error) {
+            console.error('Failed to extend session:', error);
+            logout();
+        } finally {
+            setIsRefreshing(false);
+        }
     };
 
     const formatTime = (seconds: number): string => {
@@ -88,19 +106,20 @@ export const SessionExpiryWarning: React.FC = () => {
 
     return (
         <div className="fixed top-4 right-4 z-50 max-w-md">
-            <Alert className="bg-yellow-50 border-yellow-200">
+            <Alert className="bg-yellow-50 border-yellow-200 shadow-lg">
                 <AlertTitle className="text-yellow-800">Session Expiring Soon</AlertTitle>
                 <AlertDescription className="text-yellow-700">
                     <p className="mb-3">
                         Your session will expire in <strong>{formatTime(timeRemaining)}</strong>.
-                        Would you like to continue working?
+                        {rememberMe && <span className="block text-xs mt-1">Auto-refresh enabled with "Remember Me"</span>}
                     </p>
                     <div className="flex gap-2">
                         <button
                             onClick={handleExtendSession}
-                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded transition-colors"
+                            disabled={isRefreshing}
+                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white text-sm rounded transition-colors"
                         >
-                            Extend Session
+                            {isRefreshing ? 'Extending...' : 'Extend Session'}
                         </button>
                         <button
                             onClick={logout}

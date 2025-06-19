@@ -111,7 +111,7 @@ export const SessionExpiryWarning: React.FC = () => {
                 <AlertDescription className="text-yellow-700">
                     <p className="mb-3">
                         Your session will expire in <strong>{formatTime(timeRemaining)}</strong>.
-                        {rememberMe && <span className="block text-xs mt-1">Auto-refresh enabled with "Remember Me"</span>}
+                        {rememberMe && <span className="block text-xs mt-1">Auto-refresh enabled with &quot;Remember Me&quot;</span>}
                     </p>
                     <div className="flex gap-2">
                         <button

@@ -81,7 +81,6 @@ const createAuthenticatedFetch = (logout: () => void, refreshToken: () => Promis
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
-    const [refreshTokenValue, setRefreshTokenValue] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [rememberMe, setRememberMe] = useState(false);
@@ -108,7 +107,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const logout = () => {
         setUser(null);
         setToken(null);
-        setRefreshTokenValue(null);
         setRememberMe(false);
         localStorage.removeItem('authToken');
         localStorage.removeItem('refreshToken');
@@ -164,13 +162,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Initialize auth state from localStorage on mount
     useEffect(() => {
         const storedToken = localStorage.getItem('authToken');
-        const storedRefreshToken = localStorage.getItem('refreshToken');
         const storedUser = localStorage.getItem('user');
         const storedRememberMe = localStorage.getItem('rememberMe') === 'true';
 
         if (storedToken && storedUser) {
             setToken(storedToken);
-            setRefreshTokenValue(storedRefreshToken);
             setRememberMe(storedRememberMe);
 
             try {
@@ -262,11 +258,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setToken(data.token);
             setUser(data.user);
             setRememberMe(rememberMe);
-
-            if (data.refresh_token) {
-                setRefreshTokenValue(data.refresh_token);
-                localStorage.setItem('refreshToken', data.refresh_token);
-            }
 
             // Store in localStorage
             localStorage.setItem('authToken', data.token);

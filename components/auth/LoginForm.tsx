@@ -113,7 +113,7 @@ const LoginForm: React.FC = () => {
         </form>
 
         <div className="mt-4 text-center text-xs text-gray-600">
-          <p>By checking "Remember me", your session will stay active for 7 days</p>
+          <p>By checking &quot;Remember me&quot;, your session will stay active for 7 days</p>
           <p>instead of the default 24 hours.</p>
         </div>
       </div>

@@ -13,6 +13,11 @@ import { useAuth } from './auth/AuthContext';
 import { Agent } from '@/types/AgentTypes';
 import { UserPlus } from 'lucide-react';
 
+interface ApiError {
+    status: number;
+    message?: string;
+}
+
 const AgentManagementApp: React.FC = () => {
     const [agents, setAgents] = useState<Agent[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>('');
@@ -44,8 +49,8 @@ const AgentManagementApp: React.FC = () => {
             setAgents(sortedAgents);
             applyFilters(sortedAgents);
         } catch (error) {
-            if (typeof error === 'object' && error !== null && 'status' in error && (error as any).status !== 401) {
-                setError((error as any).message || 'Failed to fetch agents');
+            if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
+                setError((error as ApiError).message || 'Failed to fetch agents');
             }
         } finally {
             setLoading(false);
@@ -86,15 +91,18 @@ const AgentManagementApp: React.FC = () => {
             const isEditing = !!agent.id;
             const url = isEditing ? `${agentURL}/edit/${agent.id}` : `${agentURL}/create`;
 
-            const response = isEditing
-                ? await api.put(url, agent, token)
-                : await api.post(url, agent, token);
+            // Remove response variable since it's not being used
+            if (isEditing) {
+                await api.put(url, agent, token);
+            } else {
+                await api.post(url, agent, token);
+            }
 
             await fetchAgents();
             closeModal();
         } catch (error) {
-            if (typeof error === 'object' && error !== null && 'status' in error && (error as any).status !== 401) {
-                setError((error as any).message || 'Failed to save agent');
+            if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
+                setError((error as ApiError).message || 'Failed to save agent');
             }
         }
     };
@@ -107,8 +115,8 @@ const AgentManagementApp: React.FC = () => {
             setAgents(prev => prev.filter(a => a.id !== agent.id));
             setDeleteConfirmAgent(null);
         } catch (error) {
-            if (typeof error === 'object' && error !== null && 'status' in error && (error as any).status !== 401) {
-                setError((error as any).message || 'Failed to delete agent');
+            if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
+                setError((error as ApiError).message || 'Failed to delete agent');
             }
         }
     };
@@ -171,9 +179,11 @@ const AgentManagementApp: React.FC = () => {
             }
 
             fetchAgents();
-        } catch (error) {
-            if (typeof error === 'object' && error !== null && 'message' in error) {
-                setError((error as { message?: string }).message || 'Failed to import agents');
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                setError(error.message);
+            } else if (typeof error === 'object' && error !== null && 'message' in error) {
+                setError((error as { message: string }).message);
             } else {
                 setError('Failed to import agents');
             }

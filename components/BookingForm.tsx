@@ -9,6 +9,11 @@ import { Select } from '@headlessui/react';
 import { api } from '@/utils/api'; // Add this import
 import { useAuth } from './auth/AuthContext'; // Add this import
 
+interface ApiError {
+    status: number;
+    message?: string;
+}
+
 const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) => {
     const [formData, setFormData] = useState<Booking>({
         id: 0,
@@ -37,7 +42,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
                 setAgents(data.agents);
             } catch (error) {
                 console.error('Failed to fetch agents:', error);
-                if (typeof error === 'object' && error !== null && 'status' in error && (error as any).status !== 401) {
+                if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
                     setError('Failed to load agents');
                 }
             }

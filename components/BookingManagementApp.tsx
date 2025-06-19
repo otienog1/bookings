@@ -14,6 +14,11 @@ import { useAuth } from './auth/AuthContext';
 import { Booking, BookingsResponse, GroupedBookings } from '@/types/BookingTypes';
 import { Agent } from '@/types/AgentTypes';
 
+interface ApiError {
+    status: number;
+    message?: string;
+}
+
 const BookingsTable: React.FC = () => {
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [groupedBookings, setGroupedBookings] = useState<GroupedBookings>({});
@@ -39,8 +44,8 @@ const BookingsTable: React.FC = () => {
             setAgents(data.agents);
         } catch (error) {
             console.error("Error fetching agents:", error);
-            if (typeof error === 'object' && error !== null && 'status' in error && (error as any).status !== 401) {
-                setError((error as any).message || 'Failed to fetch agents');
+            if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
+                setError((error as ApiError).message || 'Failed to fetch agents');
             }
         }
     };
@@ -78,8 +83,8 @@ const BookingsTable: React.FC = () => {
             setFilteredBookings(initialFiltered);
             groupBookingsByYearMonth(initialFiltered);
         } catch (error) {
-            if (typeof error === 'object' && error !== null && 'status' in error && (error as any).status !== 401) {
-                setError((error as any).message || 'Failed to fetch bookings');
+            if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
+                setError((error as ApiError).message || 'Failed to fetch bookings');
             }
         } finally {
             setLoading(false);
@@ -187,8 +192,8 @@ const BookingsTable: React.FC = () => {
             await fetchBookings();
             closeModal();
         } catch (error) {
-            if (typeof error === 'object' && error !== null && 'status' in error && (error as any).status !== 401) {
-                setError((error as any).message || 'Failed to save booking');
+            if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
+                setError((error as ApiError).message || 'Failed to save booking');
             }
         }
     };
@@ -201,8 +206,8 @@ const BookingsTable: React.FC = () => {
             setBookings(prev => prev.filter(b => b.id !== booking.id));
             setDeleteConfirmBooking(null);
         } catch (error) {
-            if (typeof error === 'object' && error !== null && 'status' in error && (error as any).status !== 401) {
-                setError((error as any).message || 'Failed to delete booking');
+            if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
+                setError((error as ApiError).message || 'Failed to delete booking');
             }
         }
     };
@@ -290,7 +295,7 @@ const BookingsTable: React.FC = () => {
             fetchBookings();
         } catch (error) {
             if (typeof error === 'object' && error !== null && 'message' in error) {
-                setError((error as any).message || 'Failed to import bookings');
+                setError((error as ApiError).message || 'Failed to import bookings');
             } else {
                 setError('Failed to import bookings');
             }

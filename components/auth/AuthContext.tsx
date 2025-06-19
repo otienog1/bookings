@@ -93,7 +93,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return () => {
             window.fetch = window.fetch;
         };
-    }, [logout]);
+    }, []);
 
     // Initialize auth state from localStorage on mount
     useEffect(() => {
@@ -129,7 +129,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 logout();
             }
         }
-    }, [logout]);
+    }, []);
 
     // Set up interval to check token expiry periodically
     useEffect(() => {
@@ -144,7 +144,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
             return () => clearInterval(interval);
         }
-    }, [token, checkTokenExpiry, logout]);
+    }, [token]);
 
     const login = async (username: string, password: string) => {
         setIsLoading(true);

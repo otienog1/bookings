@@ -91,7 +91,7 @@ const LoginForm: React.FC = () => {
             />
           </div>
 
-          <div className="mb-6">
+          <div>
             <label className="flex items-center">
               <input
                 type="checkbox"
@@ -103,6 +103,10 @@ const LoginForm: React.FC = () => {
             </label>
           </div>
 
+          <div className="my-4 text-xs text-gray-600">
+            <p>By checking &quot;Remember me&quot;, your session will stay active for 7 days instead of the default 24 hours.</p>
+          </div>
+
           <button
             type="submit"
             disabled={isLoading}
@@ -112,12 +116,8 @@ const LoginForm: React.FC = () => {
           </button>
         </form>
 
-        <div className="mt-4 text-center text-xs text-gray-600">
-          <p>By checking &quot;Remember me&quot;, your session will stay active for 7 days</p>
-          <p>instead of the default 24 hours.</p>
-        </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 

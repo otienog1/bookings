@@ -1,43 +1,75 @@
 "use client"
 
-import { useState, useEffect } from 'react';
-import { format, isBefore, isAfter } from 'date-fns';
+import { useState, useEffect, useMemo } from 'react';
+import { format, isBefore, isAfter, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import React from 'react';
 import BookingForm from './BookingForm';
 import Modal from './Modal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import * as XLSX from 'xlsx';
 import UILoader from './UILoader';
-import { api } from '@/utils/api'; // Add this import
-
+import { api } from '@/utils/api';
 import { useAuth } from './auth/AuthContext';
 import { Booking, BookingsResponse, GroupedBookings } from '@/types/BookingTypes';
 import { Agent } from '@/types/AgentTypes';
+import { ChevronDown, ChevronUp, Filter, X, Download, Upload, Plus } from 'lucide-react';
 
 interface ApiError {
     status: number;
     message?: string;
 }
 
+interface Filters {
+    search: string;
+    status: 'all' | 'upcoming' | 'ongoing' | 'completed';
+    dateFrom: string;
+    dateTo: string;
+    agent: string;
+    country: string;
+    consultant: string;
+    minPax: string;
+    maxPax: string;
+    showOnlyMyBookings: boolean;
+}
+
+interface SortConfig {
+    key: keyof Booking | null;
+    direction: 'asc' | 'desc';
+}
+
 const BookingsTable: React.FC = () => {
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [groupedBookings, setGroupedBookings] = useState<GroupedBookings>({});
-    const [searchTerm, setSearchTerm] = useState<string>('');
-    const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
     const [deleteConfirmBooking, setDeleteConfirmBooking] = useState<Booking | null>(null);
-    const [showOnlyMyBookings, setShowOnlyMyBookings] = useState(true);
     const [agents, setAgents] = useState<Agent[]>([]);
+    const [showFilters, setShowFilters] = useState(false);
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: 'asc' });
+
     const { token, isAuthenticated, isAdmin, user } = useAuth();
+
+    // Initialize filters
+    const [filters, setFilters] = useState<Filters>({
+        search: '',
+        status: 'all',
+        dateFrom: '',
+        dateTo: '',
+        agent: '',
+        country: '',
+        consultant: '',
+        minPax: '',
+        maxPax: '',
+        showOnlyMyBookings: true
+    });
 
     const baseURL = "https://bookingsendpoint.onrender.com";
     const bookingURL = `${baseURL}/booking`;
     const agentURL = `${baseURL}/agent`;
 
-    // Updated fetch agents with API utility
+    // Fetch agents
     const fetchAgents = async () => {
         try {
             const data = await api.get(`${agentURL}/fetch`, token);
@@ -50,7 +82,7 @@ const BookingsTable: React.FC = () => {
         }
     };
 
-    // Updated fetch bookings with API utility
+    // Fetch bookings
     const fetchBookings = async () => {
         try {
             setLoading(true);
@@ -68,20 +100,7 @@ const BookingsTable: React.FC = () => {
             });
 
             const sortedBookings = sortBookingsByDate(processedBookings);
-
             setBookings(sortedBookings);
-
-            // Apply initial filtering based on showOnlyMyBookings state
-            const initialFiltered = sortedBookings.filter(booking => {
-                const isComplete = (new Date(booking.date_from) < new Date() && new Date(booking.date_to) < new Date());
-                // Only show current user's bookings if showOnlyMyBookings is true
-                const isUserBooking = showOnlyMyBookings ? booking.user_id === user?.id : true;
-
-                return !isComplete && isUserBooking;
-            });
-
-            setFilteredBookings(initialFiltered);
-            groupBookingsByYearMonth(initialFiltered);
         } catch (error) {
             if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
                 setError((error as ApiError).message || 'Failed to fetch bookings');
@@ -103,7 +122,18 @@ const BookingsTable: React.FC = () => {
         }
     }, [isAuthenticated, token, agents]);
 
-    // Sort and filter bookings
+    // Get unique values for filter dropdowns
+    const uniqueCountries = useMemo(() =>
+        Array.from(new Set(bookings.map(b => b.country))).sort(),
+        [bookings]
+    );
+
+    const uniqueConsultants = useMemo(() =>
+        Array.from(new Set(bookings.map(b => b.consultant))).sort(),
+        [bookings]
+    );
+
+    // Sort bookings by date
     const sortBookingsByDate = (bookingsToSort: Booking[]): Booking[] => {
         const currentDate = new Date();
 
@@ -122,41 +152,145 @@ const BookingsTable: React.FC = () => {
 
             if (categoryA !== categoryB) return categoryA - categoryB;
 
-            // Sort by arrival date first
             const arrivalComparison = new Date(a.date_from).getTime() - new Date(b.date_from).getTime();
             if (arrivalComparison !== 0) return arrivalComparison;
 
-            // If arrival dates are the same, sort by departure date
             return new Date(a.date_to).getTime() - new Date(b.date_to).getTime();
         });
     };
 
-    useEffect(() => {
-        const filtered = bookings.filter(booking => {
-            const searchFields = [
-                booking.name,
-                booking.agent,
-                booking.consultant,
-                booking.country,
-                booking.created_by
-            ].map(field => field?.toLowerCase() || '');
+    // Apply all filters
+    const filteredBookings = useMemo(() => {
+        let filtered = [...bookings];
 
-            const isComplete = (new Date(booking.date_from) < new Date() && new Date(booking.date_to) < new Date());
-            const matchesSearch = searchFields.some(field => field.includes(searchTerm.toLowerCase()));
+        // Search filter
+        if (filters.search) {
+            const searchLower = filters.search.toLowerCase();
+            filtered = filtered.filter(booking => {
+                const searchFields = [
+                    booking.name,
+                    booking.agent,
+                    booking.consultant,
+                    booking.country,
+                    booking.created_by
+                ].map(field => field?.toLowerCase() || '');
 
-            // Filter for user's own bookings if the toggle is on
-            const isUserBooking = showOnlyMyBookings ? booking.user_id === user?.id : true;
+                return searchFields.some(field => field.includes(searchLower));
+            });
+        }
 
-            return !isComplete && matchesSearch && isUserBooking;
-        });
+        // Status filter
+        const today = new Date();
+        if (filters.status !== 'all') {
+            filtered = filtered.filter(booking => {
+                const arrivalDate = new Date(booking.date_from);
+                const departureDate = new Date(booking.date_to);
 
-        setFilteredBookings(filtered);
-        groupBookingsByYearMonth(filtered);
-    }, [searchTerm, bookings, showOnlyMyBookings, user?.id]);
+                switch (filters.status) {
+                    case 'upcoming':
+                        return arrivalDate > today;
+                    case 'ongoing':
+                        return arrivalDate <= today && departureDate >= today;
+                    case 'completed':
+                        return departureDate < today;
+                    default:
+                        return true;
+                }
+            });
+        }
+
+        // Date range filter
+        if (filters.dateFrom || filters.dateTo) {
+            filtered = filtered.filter(booking => {
+                const bookingStart = new Date(booking.date_from);
+                const bookingEnd = new Date(booking.date_to);
+
+                if (filters.dateFrom && filters.dateTo) {
+                    const filterStart = startOfDay(new Date(filters.dateFrom));
+                    const filterEnd = endOfDay(new Date(filters.dateTo));
+
+                    // Check if booking overlaps with filter date range
+                    return bookingStart <= filterEnd && bookingEnd >= filterStart;
+                } else if (filters.dateFrom) {
+                    const filterStart = startOfDay(new Date(filters.dateFrom));
+                    return bookingEnd >= filterStart;
+                } else if (filters.dateTo) {
+                    const filterEnd = endOfDay(new Date(filters.dateTo));
+                    return bookingStart <= filterEnd;
+                }
+                return true;
+            });
+        }
+
+        // Agent filter
+        if (filters.agent) {
+            filtered = filtered.filter(booking =>
+                booking.agent_id === parseInt(filters.agent)
+            );
+        }
+
+        // Country filter
+        if (filters.country) {
+            filtered = filtered.filter(booking =>
+                booking.country === filters.country
+            );
+        }
+
+        // Consultant filter
+        if (filters.consultant) {
+            filtered = filtered.filter(booking =>
+                booking.consultant === filters.consultant
+            );
+        }
+
+        // Pax range filter
+        if (filters.minPax || filters.maxPax) {
+            filtered = filtered.filter(booking => {
+                const pax = booking.pax;
+                const minPax = filters.minPax ? parseInt(filters.minPax) : 0;
+                const maxPax = filters.maxPax ? parseInt(filters.maxPax) : Infinity;
+                return pax >= minPax && pax <= maxPax;
+            });
+        }
+
+        // User bookings filter
+        if (filters.showOnlyMyBookings) {
+            filtered = filtered.filter(booking => booking.user_id === user?.id);
+        }
+
+        // Hide completed bookings by default unless status filter is 'completed' or 'all'
+        if (filters.status !== 'completed' && filters.status !== 'all') {
+            filtered = filtered.filter(booking => {
+                const departureDate = new Date(booking.date_to);
+                return departureDate >= today;
+            });
+        }
+
+        // Apply sorting
+        if (sortConfig.key) {
+            filtered.sort((a, b) => {
+                const aValue = a[sortConfig.key!];
+                const bValue = b[sortConfig.key!];
+
+                if (aValue === null || aValue === undefined) return 1;
+                if (bValue === null || bValue === undefined) return -1;
+
+                if (aValue < bValue) {
+                    return sortConfig.direction === 'asc' ? -1 : 1;
+                }
+                if (aValue > bValue) {
+                    return sortConfig.direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+
+        return filtered;
+    }, [bookings, filters, sortConfig, user?.id]);
 
     // Group bookings by year and month
-    const groupBookingsByYearMonth = (bookingsToGroup: Booking[]): void => {
-        const grouped = bookingsToGroup.reduce<GroupedBookings>((acc, booking) => {
+    useEffect(() => {
+        const grouped = filteredBookings.reduce<GroupedBookings>((acc, booking) => {
             const date = new Date(booking.date_from);
             const year = date.getFullYear().toString();
             const month = date.getMonth().toString();
@@ -169,9 +303,47 @@ const BookingsTable: React.FC = () => {
         }, {});
 
         setGroupedBookings(grouped);
+    }, [filteredBookings]);
+
+    // Handle sort
+    const handleSort = (key: keyof Booking) => {
+        setSortConfig(prevConfig => ({
+            key,
+            direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
+        }));
     };
 
-    // Updated CRUD Operations with API utility
+    // Clear all filters
+    const clearFilters = () => {
+        setFilters({
+            search: '',
+            status: 'all',
+            dateFrom: '',
+            dateTo: '',
+            agent: '',
+            country: '',
+            consultant: '',
+            minPax: '',
+            maxPax: '',
+            showOnlyMyBookings: true
+        });
+        setSortConfig({ key: null, direction: 'asc' });
+    };
+
+    // Check if any filters are active
+    const hasActiveFilters = useMemo(() => {
+        return filters.search !== '' ||
+            filters.status !== 'all' ||
+            filters.dateFrom !== '' ||
+            filters.dateTo !== '' ||
+            filters.agent !== '' ||
+            filters.country !== '' ||
+            filters.consultant !== '' ||
+            filters.minPax !== '' ||
+            filters.maxPax !== '';
+    }, [filters]);
+
+    // CRUD Operations
     const handleSaveBooking = async (booking: Booking) => {
         try {
             setError('');
@@ -185,7 +357,6 @@ const BookingsTable: React.FC = () => {
                 user_id: user?.id
             };
 
-            // Remove response variable since it's not being used
             if (isEditing) {
                 await api.put(url, formattedBooking, token);
             } else {
@@ -270,7 +441,8 @@ const BookingsTable: React.FC = () => {
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Bookings');
 
-        XLSX.writeFile(workbook, 'bookings.xlsx');
+        const fileName = `bookings_${format(new Date(), 'yyyy-MM-dd')}_filtered.xlsx`;
+        XLSX.writeFile(workbook, fileName);
     };
 
     const importBookings = async (file: File) => {
@@ -290,7 +462,7 @@ const BookingsTable: React.FC = () => {
             if (!response.ok) {
                 const data = await response.json();
                 if (response.status === 401) {
-                    return; // Let AuthContext handle the redirect
+                    return;
                 }
                 throw new Error(data.error || 'Failed to import bookings');
             }
@@ -307,7 +479,6 @@ const BookingsTable: React.FC = () => {
 
     return (
         <div className="px-4 mx-auto">
-
             {error && (
                 <Alert className="mb-4 bg-red-50 border-red-200">
                     <AlertTitle>Heads up!</AlertTitle>
@@ -315,57 +486,219 @@ const BookingsTable: React.FC = () => {
                 </Alert>
             )}
 
-            <div className="my-4 flex flex-col md:flex-row justify-between gap-2">
-                <div className="flex flex-col md:flex-row gap-2 items-center">
-                    <input
-                        type="text"
-                        placeholder="Search bookings..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="border p-2 w-full md:w-64 uppercase text-xs rounded"
-                    />
-
-                    <select
-                        value={showOnlyMyBookings ? 'my' : 'all'}
-                        onChange={(e) => setShowOnlyMyBookings(e.target.value === 'my')}
-                        className="border p-2 text-xs uppercase rounded"
-                    >
-                        <option value="my">My Bookings</option>
-                        <option value="all">All Bookings</option>
-                    </select>
-                </div>
-                <div className='flex space-x-2'>
-                    <button
-                        onClick={() => openModal()}
-                        className="rounded px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white uppercase text-xs transition-colors"
-                    >
-                        New Booking
-                    </button>
-                    {isAdmin && (
-                        <input
-                            type="file"
-                            accept=".csv"
-                            onChange={(e) => e.target.files && e.target.files[0] && importBookings(e.target.files[0])}
-                            className="sr-only"
-                            id="csvImport"
-                        />
-                    )}
-                    <button
-                        onClick={exportToExcel}
-                        className="rounded px-4 py-2 bg-green-500 hover:bg-green-600 text-white uppercase text-xs transition-colors"
-                    >
-                        Export to Excel
-                    </button>
-                    {isAdmin && (
-                        <label
-                            htmlFor="csvImport"
-                            className="rounded px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white uppercase text-xs transition-colors cursor-pointer"
+            {/* Actions Bar */}
+            <div className="mb-4 mt-4">
+                <div className="flex flex-col lg:flex-row justify-between gap-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className={`flex items-center rounded px-3 py-2 text-xs uppercase transition-colors ${hasActiveFilters
+                                ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                : 'bg-gray-100 hover:bg-gray-200'
+                                }`}
                         >
-                            Import CSV
-                        </label>
-                    )}
+                            <Filter className="h-4 w-4 mr-1" />
+                            Filters {hasActiveFilters && `(Active)`}
+                            {showFilters ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />}
+                        </button>
+
+                        {hasActiveFilters && (
+                            <button
+                                onClick={clearFilters}
+                                className="flex items-center rounded px-3 py-2 bg-gray-100 hover:bg-gray-200 text-xs uppercase transition-colors"
+                            >
+                                <X className="h-4 w-4 mr-1" />
+                                Clear Filters
+                            </button>
+                        )}
+
+                        <div className="text-xs text-gray-600">
+                            Showing {filteredBookings.length} of {bookings.length} bookings
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            onClick={() => openModal()}
+                            className="flex items-center rounded px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white uppercase text-xs transition-colors"
+                        >
+                            <Plus className="h-4 w-4 mr-1" />
+                            New Booking
+                        </button>
+                        <button
+                            onClick={exportToExcel}
+                            className="flex items-center rounded px-4 py-2 bg-green-500 hover:bg-green-600 text-white uppercase text-xs transition-colors"
+                        >
+                            <Download className="h-4 w-4 mr-1" />
+                            Export
+                        </button>
+                        {isAdmin && (
+                            <>
+                                <input
+                                    type="file"
+                                    accept=".csv"
+                                    onChange={(e) => e.target.files && e.target.files[0] && importBookings(e.target.files[0])}
+                                    className="sr-only"
+                                    id="csvImport"
+                                />
+                                <label
+                                    htmlFor="csvImport"
+                                    className="flex items-center rounded px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white uppercase text-xs transition-colors cursor-pointer"
+                                >
+                                    <Upload className="h-4 w-4 mr-1" />
+                                    Import CSV
+                                </label>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
+
+            {/* Filters Panel */}
+            {showFilters && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                        {/* Search */}
+                        <div>
+                            <label className="block text-xs font-medium mb-1 uppercase">Search</label>
+                            <input
+                                type="text"
+                                placeholder="Name, agent, consultant..."
+                                value={filters.search}
+                                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                                className="w-full border rounded p-2 text-xs"
+                            />
+                        </div>
+
+                        {/* Status */}
+                        <div>
+                            <label className="block text-xs font-medium mb-1 uppercase">Status</label>
+                            <select
+                                value={filters.status}
+                                onChange={(e) => setFilters({ ...filters, status: e.target.value as Filters['status'] })}
+                                className="w-full border rounded p-2 text-xs uppercase"
+                            >
+                                <option value="all">All Statuses</option>
+                                <option value="upcoming">Upcoming</option>
+                                <option value="ongoing">Ongoing</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+
+                        {/* Date From */}
+                        <div>
+                            <label className="block text-xs font-medium mb-1 uppercase">Date From</label>
+                            <input
+                                type="date"
+                                value={filters.dateFrom}
+                                onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+                                className="w-full border rounded p-2 text-xs"
+                            />
+                        </div>
+
+                        {/* Date To */}
+                        <div>
+                            <label className="block text-xs font-medium mb-1 uppercase">Date To</label>
+                            <input
+                                type="date"
+                                value={filters.dateTo}
+                                onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+                                className="w-full border rounded p-2 text-xs"
+                            />
+                        </div>
+
+                        {/* Agent */}
+                        <div>
+                            <label className="block text-xs font-medium mb-1 uppercase">Agent</label>
+                            <select
+                                value={filters.agent}
+                                onChange={(e) => setFilters({ ...filters, agent: e.target.value })}
+                                className="w-full border rounded p-2 text-xs uppercase"
+                            >
+                                <option value="">All Agents</option>
+                                {agents.map(agent => (
+                                    <option key={agent.id} value={agent.id}>
+                                        {agent.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Country */}
+                        <div>
+                            <label className="block text-xs font-medium mb-1 uppercase">Country</label>
+                            <select
+                                value={filters.country}
+                                onChange={(e) => setFilters({ ...filters, country: e.target.value })}
+                                className="w-full border rounded p-2 text-xs uppercase"
+                            >
+                                <option value="">All Countries</option>
+                                {uniqueCountries.map(country => (
+                                    <option key={country} value={country}>
+                                        {country}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Consultant */}
+                        <div>
+                            <label className="block text-xs font-medium mb-1 uppercase">Consultant</label>
+                            <select
+                                value={filters.consultant}
+                                onChange={(e) => setFilters({ ...filters, consultant: e.target.value })}
+                                className="w-full border rounded p-2 text-xs uppercase"
+                            >
+                                <option value="">All Consultants</option>
+                                {uniqueConsultants.map(consultant => (
+                                    <option key={consultant} value={consultant}>
+                                        {consultant}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Pax Range */}
+                        <div className="grid grid-cols-2 gap-2">
+                            <div>
+                                <label className="block text-xs font-medium mb-1 uppercase">Min Pax</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    placeholder="0"
+                                    value={filters.minPax}
+                                    onChange={(e) => setFilters({ ...filters, minPax: e.target.value })}
+                                    className="w-full border rounded p-2 text-xs"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium mb-1 uppercase">Max Pax</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    placeholder="∞"
+                                    value={filters.maxPax}
+                                    onChange={(e) => setFilters({ ...filters, maxPax: e.target.value })}
+                                    className="w-full border rounded p-2 text-xs"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Show My Bookings Only */}
+                        <div className="flex items-end">
+                            <label className="flex items-center space-x-2 text-xs">
+                                <input
+                                    type="checkbox"
+                                    checked={filters.showOnlyMyBookings}
+                                    onChange={(e) => setFilters({ ...filters, showOnlyMyBookings: e.target.checked })}
+                                    className="rounded"
+                                />
+                                <span className="uppercase">My Bookings Only</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Confirm Delete Modal */}
             <Modal
@@ -403,21 +736,56 @@ const BookingsTable: React.FC = () => {
             </Modal>
 
             {/* Bookings Table */}
-            <div id="bookings-table" className="bg-white overflow-hidden">
+            <div id="bookings-table" className="bg-white overflow-x-auto">
                 <table className="w-full border-collapse">
                     <thead>
                         <tr className="bg-gray-50">
-                            <th className="border py-2 px-3 text-xs uppercase text-left">Name</th>
-                            <th className="border py-2 px-3 text-xs uppercase text-left">Arrival</th>
-                            <th className="border py-2 px-3 text-xs uppercase text-left">Departure</th>
-                            <th className="border py-2 px-3 text-xs uppercase text-left">Country</th>
-                            <th className="border py-2 px-3 text-xs uppercase text-center">Pax</th>
+                            <th
+                                className="border py-2 px-3 text-xs uppercase text-left cursor-pointer hover:bg-gray-100"
+                                onClick={() => handleSort('name')}
+                            >
+                                Name {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th
+                                className="border py-2 px-3 text-xs uppercase text-left cursor-pointer hover:bg-gray-100"
+                                onClick={() => handleSort('date_from')}
+                            >
+                                Arrival {sortConfig.key === 'date_from' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th
+                                className="border py-2 px-3 text-xs uppercase text-left cursor-pointer hover:bg-gray-100"
+                                onClick={() => handleSort('date_to')}
+                            >
+                                Departure {sortConfig.key === 'date_to' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th
+                                className="border py-2 px-3 text-xs uppercase text-left cursor-pointer hover:bg-gray-100"
+                                onClick={() => handleSort('country')}
+                            >
+                                Country {sortConfig.key === 'country' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th
+                                className="border py-2 px-3 text-xs uppercase text-center cursor-pointer hover:bg-gray-100"
+                                onClick={() => handleSort('pax')}
+                            >
+                                Pax {sortConfig.key === 'pax' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
                             <th className="border py-2 px-3 text-xs uppercase text-center">Ladies</th>
                             <th className="border py-2 px-3 text-xs uppercase text-center">Men</th>
                             <th className="border py-2 px-3 text-xs uppercase text-center">Children</th>
                             <th className="border py-2 px-3 text-xs uppercase text-center">Teens</th>
-                            <th className="border py-2 px-3 text-xs uppercase text-left">Agent</th>
-                            <th className="border py-2 px-3 text-xs uppercase text-left">Consultant</th>
+                            <th
+                                className="border py-2 px-3 text-xs uppercase text-left cursor-pointer hover:bg-gray-100"
+                                onClick={() => handleSort('agent')}
+                            >
+                                Agent {sortConfig.key === 'agent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th
+                                className="border py-2 px-3 text-xs uppercase text-left cursor-pointer hover:bg-gray-100"
+                                onClick={() => handleSort('consultant')}
+                            >
+                                Consultant {sortConfig.key === 'consultant' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </th>
                             <th className="border py-2 px-3 text-xs uppercase text-left">Status</th>
                             {isAdmin && (
                                 <th className="border py-2 px-3 text-xs uppercase text-left">Created By</th>
@@ -450,7 +818,7 @@ const BookingsTable: React.FC = () => {
                                             <React.Fragment key={`${year}-${month}`}>
                                                 <tr>
                                                     <td colSpan={isAdmin ? 14 : 13} className="py-2 px-3 text-sm font-medium bg-gray-50/50 uppercase border">
-                                                        {monthName}
+                                                        {monthName} ({monthBookings.length} bookings)
                                                     </td>
                                                 </tr>
                                                 {monthBookings.map((booking: Booking) => (
@@ -502,15 +870,43 @@ const BookingsTable: React.FC = () => {
                         ) : (
                             <tr>
                                 <td colSpan={isAdmin ? 14 : 13} className="py-4 px-3 text-center border">
-                                    {showOnlyMyBookings ? 'You have no bookings yet.' : 'No bookings found.'}
+                                    {filters.showOnlyMyBookings
+                                        ? 'No bookings found matching your filters.'
+                                        : 'No bookings found matching the filters.'}
                                 </td>
                             </tr>
                         )}
                     </tbody>
                 </table>
             </div>
-        </div>
-    )
-}
 
-export default BookingsTable
+            {/* Summary Stats */}
+            {filteredBookings.length > 0 && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg text-xs">
+                    <div className="flex flex-wrap gap-4">
+                        <div>
+                            <span className="font-medium uppercase">Total Bookings:</span> {filteredBookings.length}
+                        </div>
+                        <div>
+                            <span className="font-medium uppercase">Total Pax:</span> {filteredBookings.reduce((sum, b) => sum + b.pax, 0)}
+                        </div>
+                        <div>
+                            <span className="font-medium uppercase">Upcoming:</span> {filteredBookings.filter(b => new Date(b.date_from) > new Date()).length}
+                        </div>
+                        <div>
+                            <span className="font-medium uppercase">Ongoing:</span> {filteredBookings.filter(b => {
+                                const today = new Date();
+                                return new Date(b.date_from) <= today && new Date(b.date_to) >= today;
+                            }).length}
+                        </div>
+                        <div>
+                            <span className="font-medium uppercase">Completed:</span> {filteredBookings.filter(b => new Date(b.date_to) < new Date()).length}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default BookingsTable;

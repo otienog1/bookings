@@ -13,6 +13,9 @@ import { useAuth } from './auth/AuthContext';
 import { Agent } from '@/types/AgentTypes';
 import { UserPlus } from 'lucide-react';
 
+import { config } from '@/config/environment';
+import { API_ENDPOINTS, agentsApiUrl } from '@/config/apiEndpoints';
+
 interface ApiError {
     status: number;
     message?: string;
@@ -30,7 +33,8 @@ const AgentManagementApp: React.FC = () => {
     const [showInactive, setShowInactive] = useState(false);
     const { token, isAuthenticated, isAdmin, user } = useAuth();
 
-    const baseURL = "https://bookingsendpoint.onrender.com";
+    // const baseURL = "https://bookingsendpoint.onrender.com";
+    const baseURL = "localhost:5000";
     const agentURL = `${baseURL}/agent`;
 
     // Updated fetch agents with API utility
@@ -39,7 +43,7 @@ const AgentManagementApp: React.FC = () => {
             setLoading(true);
             setError('');
 
-            const data = await api.get(`${agentURL}/fetch?show_inactive=${showInactive}`, token);
+            const data = await api.get(API_ENDPOINTS.AGENTS.FETCH + `?show_inactive=${showInactive}`, token);
 
             // Sort agents alphabetically by name
             const sortedAgents = data.agents.sort((a: Agent, b: Agent) =>
@@ -89,13 +93,15 @@ const AgentManagementApp: React.FC = () => {
         try {
             setError('');
             const isEditing = !!agent.id;
-            const url = isEditing ? `${agentURL}/edit/${agent.id}` : `${agentURL}/create`;
+            const endpoint = isEditing
+                ? API_ENDPOINTS.AGENTS.EDIT(agent.id)
+                : API_ENDPOINTS.AGENTS.CREATE;
 
             // Remove response variable since it's not being used
             if (isEditing) {
-                await api.put(url, agent, token);
+                await api.put(endpoint, agent, token);
             } else {
-                await api.post(url, agent, token);
+                await api.post(endpoint, agent, token);
             }
 
             await fetchAgents();
@@ -110,7 +116,7 @@ const AgentManagementApp: React.FC = () => {
     const handleDeleteAgent = async (agent: Agent) => {
         try {
             setError('');
-            await api.delete(`${agentURL}/delete/${agent.id}`, token);
+            await api.delete(API_ENDPOINTS.AGENTS.DELETE(agent.id), token);
 
             setAgents(prev => prev.filter(a => a.id !== agent.id));
             setDeleteConfirmAgent(null);
@@ -156,7 +162,7 @@ const AgentManagementApp: React.FC = () => {
 
         try {
             setError('');
-            const response = await fetch(`${agentURL}/import`, {
+            const response = await fetch(config.getApiUrl(API_ENDPOINTS.AGENTS.IMPORT), {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`

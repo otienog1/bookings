@@ -1,4 +1,4 @@
-// utils/api.ts
+import { config } from '@/config/environment';
 
 interface ApiOptions extends RequestInit {
     token?: string | null;
@@ -19,6 +19,9 @@ class ApiError extends Error {
 export const apiCall = async (url: string, options: ApiOptions = {}): Promise<any> => {
     const { token, ...fetchOptions } = options;
 
+    // Determine if the URL is absolute or relative
+    const fullUrl = url.startsWith('http') ? url : config.getApiUrl(url);
+
     // Add authorization header if token is provided
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -30,7 +33,11 @@ export const apiCall = async (url: string, options: ApiOptions = {}): Promise<an
     }
 
     try {
-        const response = await fetch(url, {
+        if (config.isDevelopment) {
+            console.log(`🌐 API Call: ${fetchOptions.method || 'GET'} ${fullUrl}`);
+        }
+
+        const response = await fetch(fullUrl, {
             ...fetchOptions,
             headers,
         });
@@ -89,3 +96,6 @@ export const api = {
     delete: (url: string, token?: string | null) =>
         apiCall(url, { method: 'DELETE', token }),
 };
+
+// Legacy support - you can remove this once you update all components
+export { apiCall as default };

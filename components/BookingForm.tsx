@@ -6,8 +6,9 @@ import { format } from 'date-fns';
 import { Booking, BookingFormProps } from '@/types/BookingTypes';
 import { Agent } from '@/types/AgentTypes';
 import { Select } from '@headlessui/react';
-import { api } from '@/utils/api'; // Add this import
-import { useAuth } from './auth/AuthContext'; // Add this import
+import { api } from '@/utils/api';
+import { useAuth } from './auth/AuthContext';
+import { API_ENDPOINTS } from '@/config/apiEndpoints';
 
 interface ApiError {
     status: number;
@@ -38,7 +39,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
     useEffect(() => {
         const fetchAgents = async () => {
             try {
-                const data = await api.get('https://bookingsendpoint.onrender.com/agent/fetch', token);
+                const data = await api.get(API_ENDPOINTS.AGENTS.FETCH, token);
                 setAgents(data.agents);
             } catch (error) {
                 console.error('Failed to fetch agents:', error);

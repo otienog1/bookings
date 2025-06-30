@@ -13,6 +13,9 @@ import { useAuth } from './auth/AuthContext';
 import { Booking, BookingsResponse, GroupedBookings } from '@/types/BookingTypes';
 import { Agent } from '@/types/AgentTypes';
 import { ChevronDown, ChevronUp, Filter, X, Download, Upload, Plus } from 'lucide-react';
+import { paymentApi } from '@/utils/paymentApi';
+import { config } from '@/config/environment';
+import { API_ENDPOINTS, bookingsApiUrl, agentsApiUrl } from '@/config/apiEndpoints';
 
 interface ApiError {
     status: number;
@@ -48,6 +51,9 @@ const BookingsTable: React.FC = () => {
     const [agents, setAgents] = useState<Agent[]>([]);
     const [showFilters, setShowFilters] = useState(false);
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: 'asc' });
+    const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+    const [selectedBookingForInvoice, setSelectedBookingForInvoice] = useState<Booking | null>(null);
+
 
     const { token, isAuthenticated, isAdmin, user } = useAuth();
 
@@ -65,14 +71,15 @@ const BookingsTable: React.FC = () => {
         showOnlyMyBookings: true
     });
 
-    const baseURL = "https://bookingsendpoint.onrender.com";
+    // const baseURL = "https://bookingsendpoint.onrender.com";
+    const baseURL = "http://localhost:5000"; // Use your local server URL for development
     const bookingURL = `${baseURL}/booking`;
     const agentURL = `${baseURL}/agent`;
 
     // Fetch agents
     const fetchAgents = async () => {
         try {
-            const data = await api.get(`${agentURL}/fetch`, token);
+            const data = await api.get(API_ENDPOINTS.AGENTS.FETCH, token);
             setAgents(data.agents);
         } catch (error) {
             console.error("Error fetching agents:", error);
@@ -88,7 +95,7 @@ const BookingsTable: React.FC = () => {
             setLoading(true);
             setError('');
 
-            const data: BookingsResponse = await api.get(`${bookingURL}/fetch`, token);
+            const data: BookingsResponse = await api.get(API_ENDPOINTS.BOOKINGS.FETCH, token);
 
             // Process bookings to add agent names from the agents array
             const processedBookings = data.bookings.map(booking => {
@@ -348,7 +355,9 @@ const BookingsTable: React.FC = () => {
         try {
             setError('');
             const isEditing = !!booking.id;
-            const url = isEditing ? `${bookingURL}/edit/${booking.id}` : `${bookingURL}/create`;
+            const endpoint = isEditing
+                ? API_ENDPOINTS.BOOKINGS.EDIT(booking.id)
+                : API_ENDPOINTS.BOOKINGS.CREATE;
 
             const formattedBooking = {
                 ...booking,
@@ -358,9 +367,9 @@ const BookingsTable: React.FC = () => {
             };
 
             if (isEditing) {
-                await api.put(url, formattedBooking, token);
+                await api.put(endpoint, formattedBooking, token);
             } else {
-                await api.post(url, formattedBooking, token);
+                await api.post(endpoint, formattedBooking, token);
             }
 
             await fetchBookings();
@@ -375,7 +384,7 @@ const BookingsTable: React.FC = () => {
     const handleDeleteBooking = async (booking: Booking) => {
         try {
             setError('');
-            await api.delete(`${bookingURL}/delete/${booking.id}`, token);
+            await api.delete(API_ENDPOINTS.BOOKINGS.DELETE(booking.id), token);
 
             setBookings(prev => prev.filter(b => b.id !== booking.id));
             setDeleteConfirmBooking(null);
@@ -421,6 +430,31 @@ const BookingsTable: React.FC = () => {
         return format(date, 'EEE, d MMM');
     };
 
+    const handleCreateInvoice = async (booking: Booking) => {
+        try {
+            setError('');
+            const invoiceData = {
+                booking_id: booking.id,
+                customer_name: booking.name,
+                package_name: `Safari to ${booking.country}`,
+                package_description: `${booking.pax} pax safari from ${formatDate(booking.date_from)} to ${formatDate(booking.date_to)}`,
+                base_price: 2500, // Set appropriate default price
+                currency: 'USD'
+            };
+
+            const response = await paymentApi.createInvoice(invoiceData, token ?? "");
+
+            if (response.success) {
+                alert(`Invoice created! Payment link: ${response.invoice.payment_link}`);
+                // You can copy to clipboard or show a modal with the link
+            } else {
+                setError(response.error || 'Failed to create invoice');
+            }
+        } catch (error) {
+            setError('Failed to create invoice');
+        }
+    };
+
     const exportToExcel = () => {
         const worksheet = XLSX.utils.json_to_sheet(filteredBookings.map(booking => ({
             Name: booking.name,
@@ -451,7 +485,7 @@ const BookingsTable: React.FC = () => {
 
         try {
             setError('');
-            const response = await fetch(`${bookingURL}/import`, {
+            const response = await fetch(config.getApiUrl(API_ENDPOINTS.BOOKINGS.IMPORT), {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -858,6 +892,12 @@ const BookingsTable: React.FC = () => {
                                                                         Delete
                                                                     </button>
                                                                 )}
+                                                                <button
+                                                                    onClick={() => handleCreateInvoice(booking)}
+                                                                    className="text-green-600 hover:text-green-800 mr-2"
+                                                                >
+                                                                    Create Invoice
+                                                                </button>
                                                             </div>
                                                         </td>
                                                     </tr>

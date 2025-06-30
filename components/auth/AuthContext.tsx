@@ -3,6 +3,8 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import jwt from 'jsonwebtoken';
+import { config } from '@/config/environment';
+import { API_ENDPOINTS } from '@/config/apiEndpoints';
 
 interface User {
     id: number;
@@ -122,7 +124,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (!currentRefreshToken) return false;
 
         try {
-            const response = await fetch('https://bookingsendpoint.onrender.com/auth/refresh', {
+            const response = await fetch(config.getApiUrl(API_ENDPOINTS.AUTH.LOGIN), {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${currentRefreshToken}`,
@@ -241,7 +243,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setError(null);
 
         try {
-            const response = await fetch('https://bookingsendpoint.onrender.com/auth/login', {
+            const response = await fetch(config.getApiUrl(API_ENDPOINTS.AUTH.LOGIN), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

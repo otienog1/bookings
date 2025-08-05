@@ -13,7 +13,6 @@ import { useAuth } from './auth/AuthContext';
 import { Booking, BookingsResponse, GroupedBookings } from '@/types/BookingTypes';
 import { Agent } from '@/types/AgentTypes';
 import { ChevronDown, ChevronUp, Filter, X, Download, Upload, Plus } from 'lucide-react';
-import { paymentApi } from '@/utils/paymentApi';
 import { config } from '@/config/environment';
 import { API_ENDPOINTS, bookingsApiUrl, agentsApiUrl } from '@/config/apiEndpoints';
 
@@ -51,8 +50,6 @@ const BookingsTable: React.FC = () => {
     const [agents, setAgents] = useState<Agent[]>([]);
     const [showFilters, setShowFilters] = useState(false);
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: 'asc' });
-    const [showInvoiceModal, setShowInvoiceModal] = useState(false);
-    const [selectedBookingForInvoice, setSelectedBookingForInvoice] = useState<Booking | null>(null);
 
 
     const { token, isAuthenticated, isAdmin, user } = useAuth();
@@ -72,9 +69,9 @@ const BookingsTable: React.FC = () => {
     });
 
     // const baseURL = "https://bookingsendpoint.onrender.com";
-    const baseURL = "http://localhost:5000"; // Use your local server URL for development
-    const bookingURL = `${baseURL}/booking`;
-    const agentURL = `${baseURL}/agent`;
+    // const baseURL = "http://localhost:5000"; // Use your local server URL for development
+    // const bookingURL = `${baseURL}/booking`;
+    // const agentURL = `${baseURL}/agent`;
 
     // Fetch agents
     const fetchAgents = async () => {
@@ -430,30 +427,6 @@ const BookingsTable: React.FC = () => {
         return format(date, 'EEE, d MMM');
     };
 
-    const handleCreateInvoice = async (booking: Booking) => {
-        try {
-            setError('');
-            const invoiceData = {
-                booking_id: booking.id,
-                customer_name: booking.name,
-                package_name: `Safari to ${booking.country}`,
-                package_description: `${booking.pax} pax safari from ${formatDate(booking.date_from)} to ${formatDate(booking.date_to)}`,
-                base_price: 2500, // Set appropriate default price
-                currency: 'USD'
-            };
-
-            const response = await paymentApi.createInvoice(invoiceData, token ?? "");
-
-            if (response.success) {
-                alert(`Invoice created! Payment link: ${response.invoice.payment_link}`);
-                // You can copy to clipboard or show a modal with the link
-            } else {
-                setError(response.error || 'Failed to create invoice');
-            }
-        } catch (error) {
-            setError('Failed to create invoice');
-        }
-    };
 
     const exportToExcel = () => {
         const worksheet = XLSX.utils.json_to_sheet(filteredBookings.map(booking => ({
@@ -892,12 +865,6 @@ const BookingsTable: React.FC = () => {
                                                                         Delete
                                                                     </button>
                                                                 )}
-                                                                <button
-                                                                    onClick={() => handleCreateInvoice(booking)}
-                                                                    className="text-green-600 hover:text-green-800 mr-2"
-                                                                >
-                                                                    Create Invoice
-                                                                </button>
                                                             </div>
                                                         </td>
                                                     </tr>

@@ -26,7 +26,7 @@ const PaymentProcessPage: React.FC = () => {
                 } else {
                     setError(response.error || 'Invoice not found');
                 }
-            } catch (err) {
+            } catch {
                 setError('Failed to load invoice');
             } finally {
                 setLoading(false);
@@ -38,7 +38,7 @@ const PaymentProcessPage: React.FC = () => {
         }
     }, [params.id]);
 
-    const handlePaymentSuccess = (paymentData: any) => {
+    const handlePaymentSuccess = () => {
         // Payment success will be handled by redirect to success page
     };
 

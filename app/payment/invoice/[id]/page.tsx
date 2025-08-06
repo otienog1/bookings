@@ -23,7 +23,7 @@ const InvoicePage: React.FC = () => {
                 } else {
                     setError(response.error || 'Invoice not found');
                 }
-            } catch (err) {
+            } catch {
                 setError('Failed to load invoice');
             } finally {
                 setLoading(false);

@@ -36,7 +36,7 @@ const PaymentSuccessPage: React.FC = () => {
                     setVerificationStatus('failed');
                     setError(response.error || 'Payment verification failed');
                 }
-            } catch (err) {
+            } catch {
                 setVerificationStatus('failed');
                 setError('Failed to verify payment');
             }
@@ -163,7 +163,7 @@ const PaymentSuccessPage: React.FC = () => {
 
                             {/* Next Steps */}
                             <div className="bg-blue-50 p-6 rounded-lg mb-6">
-                                <h3 className="text-lg font-semibold text-blue-900 mb-3">What's Next?</h3>
+                                <h3 className="text-lg font-semibold text-blue-900 mb-3">What&apos;s Next?</h3>
                                 <ul className="space-y-2 text-blue-800 text-sm">
                                     <li className="flex items-start">
                                         <span className="text-blue-600 mr-2">•</span>

@@ -5,7 +5,7 @@ import { BookingsDataTable } from "@/components/BookingsDataTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert } from "@/components/ui/alert";
 import { Booking } from "@/types/BookingTypes";
 
 // Sample booking data for demonstration

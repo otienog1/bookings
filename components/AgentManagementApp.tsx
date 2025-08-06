@@ -33,8 +33,23 @@ const AgentManagementApp: React.FC = () => {
     const [showInactive, setShowInactive] = useState(false);
     const { token, isAuthenticated, isAdmin, user } = useAuth();
 
-    // const baseURL = "https://bookingsendpoint.onrender.com";
-    const baseURL = "localhost:5000";
+
+    // Apply filters based on search term
+    const applyFilters = useCallback((agentList: Agent[]) => {
+        const filtered = agentList.filter(agent => {
+            const searchFields = [
+                agent.name,
+                agent.company,
+                agent.email,
+                agent.country,
+                agent.phone
+            ].map(field => field?.toLowerCase() || '');
+
+            return searchFields.some(field => field.includes(searchTerm.toLowerCase()));
+        });
+
+        setFilteredAgents(filtered);
+    }, [searchTerm]);
 
     // Updated fetch agents with API utility
     const fetchAgents = useCallback(async () => {
@@ -66,22 +81,7 @@ const AgentManagementApp: React.FC = () => {
         }
     }, [isAuthenticated, token, showInactive, fetchAgents]);
 
-    // Apply filters based on search term
-    const applyFilters = useCallback((agentList: Agent[]) => {
-        const filtered = agentList.filter(agent => {
-            const searchFields = [
-                agent.name,
-                agent.company,
-                agent.email,
-                agent.country,
-                agent.phone
-            ].map(field => field?.toLowerCase() || '');
 
-            return searchFields.some(field => field.includes(searchTerm.toLowerCase()));
-        });
-
-        setFilteredAgents(filtered);
-    }, [searchTerm]);
 
     useEffect(() => {
         applyFilters(agents);

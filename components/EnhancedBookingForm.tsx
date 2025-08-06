@@ -11,7 +11,6 @@ import { format } from 'date-fns';
 import { Booking, BookingFormProps } from '@/types/BookingTypes';
 import { Agent } from '@/types/AgentTypes';
 import { api } from '@/utils/api';
-import { useAuth } from './auth/AuthContext';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
 import { CalendarIcon, UserIcon, MapPinIcon, UsersIcon } from 'lucide-react';
 
@@ -24,8 +23,8 @@ const EnhancedBookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCa
     const [formData, setFormData] = useState<Booking>({
         id: 0,
         name: '',
-        date_from: new Date(),
-        date_to: new Date(),
+        date_from: new Date().toISOString(),
+        date_to: new Date().toISOString(),
         country: '',
         pax: 0,
         ladies: 0,
@@ -33,11 +32,10 @@ const EnhancedBookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCa
         children: 0,
         teens: 0,
         agent_id: 0,
-        agent_name: '',
-        agent_country: '',
         consultant: '',
         user_id: 0,
-        created_by: ''
+        created_by: '',
+        agent: '' // Set to empty string to match type 'string'
     });
 
     const [agents, setAgents] = useState<Agent[]>([]);
@@ -50,15 +48,15 @@ const EnhancedBookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCa
         if (booking) {
             setFormData({
                 ...booking,
-                date_from: new Date(booking.date_from),
-                date_to: new Date(booking.date_to)
+                date_from: new Date(booking.date_from).toISOString(),
+                date_to: new Date(booking.date_to).toISOString()
             });
         }
     }, [booking]);
 
     const fetchAgents = async () => {
         try {
-            const response = await api.get<{ agents: Agent[] }>(API_ENDPOINTS.AGENTS.FETCH);
+            const response = await api.get(API_ENDPOINTS.AGENTS.FETCH);
             setAgents(response.agents);
         } catch (err) {
             console.error('Error fetching agents:', err);
@@ -68,7 +66,7 @@ const EnhancedBookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCa
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        
+
         if (name === 'agent_id') {
             const selectedAgent = agents.find(agent => agent.id === parseInt(value));
             setFormData(prev => ({
@@ -93,7 +91,7 @@ const EnhancedBookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCa
     const handleDateChange = (name: 'date_from' | 'date_to', value: string) => {
         setFormData(prev => ({
             ...prev,
-            [name]: new Date(value)
+            [name]: new Date(value).toISOString()
         }));
     };
 
@@ -106,13 +104,13 @@ const EnhancedBookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCa
         try {
             const submissionData = {
                 ...formData,
-                date_from: format(formData.date_from, 'MM/dd/yyyy'),
-                date_to: format(formData.date_to, 'MM/dd/yyyy'),
+                date_from: format(new Date(formData.date_from), 'MM/dd/yyyy'),
+                date_to: format(new Date(formData.date_to), 'MM/dd/yyyy'),
             };
 
             await onSave(submissionData);
             setSuccess('Booking saved successfully!');
-            
+
             setTimeout(() => {
                 setSuccess(null);
                 onCancel();
@@ -205,7 +203,7 @@ const EnhancedBookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCa
                                 id="date_from"
                                 name="date_from"
                                 type="date"
-                                value={format(formData.date_from, 'yyyy-MM-dd')}
+                                value={format(new Date(formData.date_from), 'yyyy-MM-dd')}
                                 onChange={(e) => handleDateChange('date_from', e.target.value)}
                                 required
                             />
@@ -217,7 +215,7 @@ const EnhancedBookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCa
                                 id="date_to"
                                 name="date_to"
                                 type="date"
-                                value={format(formData.date_to, 'yyyy-MM-dd')}
+                                value={format(new Date(formData.date_to), 'yyyy-MM-dd')}
                                 onChange={(e) => handleDateChange('date_to', e.target.value)}
                                 required
                             />

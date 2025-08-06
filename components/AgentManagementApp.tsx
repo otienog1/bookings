@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import React from 'react';
 import AgentForm from './AgentForm';
 import Modal from './Modal';
@@ -14,7 +14,7 @@ import { Agent } from '@/types/AgentTypes';
 import { UserPlus } from 'lucide-react';
 
 import { config } from '@/config/environment';
-import { API_ENDPOINTS, agentsApiUrl } from '@/config/apiEndpoints';
+import { API_ENDPOINTS } from '@/config/apiEndpoints';
 
 interface ApiError {
     status: number;
@@ -35,10 +35,9 @@ const AgentManagementApp: React.FC = () => {
 
     // const baseURL = "https://bookingsendpoint.onrender.com";
     const baseURL = "localhost:5000";
-    const agentURL = `${baseURL}/agent`;
 
     // Updated fetch agents with API utility
-    const fetchAgents = async () => {
+    const fetchAgents = useCallback(async () => {
         try {
             setLoading(true);
             setError('');
@@ -59,16 +58,16 @@ const AgentManagementApp: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [showInactive, token, applyFilters]);
 
     useEffect(() => {
         if (isAuthenticated && token) {
             fetchAgents();
         }
-    }, [isAuthenticated, token, showInactive]);
+    }, [isAuthenticated, token, showInactive, fetchAgents]);
 
     // Apply filters based on search term
-    const applyFilters = (agentList: Agent[]) => {
+    const applyFilters = useCallback((agentList: Agent[]) => {
         const filtered = agentList.filter(agent => {
             const searchFields = [
                 agent.name,
@@ -82,11 +81,11 @@ const AgentManagementApp: React.FC = () => {
         });
 
         setFilteredAgents(filtered);
-    };
+    }, [searchTerm]);
 
     useEffect(() => {
         applyFilters(agents);
-    }, [searchTerm, agents]);
+    }, [searchTerm, agents, applyFilters]);
 
     // Updated CRUD Operations with API utility
     const handleSaveAgent = async (agent: Agent) => {

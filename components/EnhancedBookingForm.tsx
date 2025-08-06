@@ -44,7 +44,6 @@ const EnhancedBookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCa
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
-    const { user } = useAuth();
 
     useEffect(() => {
         fetchAgents();

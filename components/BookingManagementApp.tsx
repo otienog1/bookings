@@ -14,7 +14,7 @@ import { Booking, BookingsResponse, GroupedBookings } from '@/types/BookingTypes
 import { Agent } from '@/types/AgentTypes';
 import { ChevronDown, ChevronUp, Filter, X, Download, Upload, Plus } from 'lucide-react';
 import { config } from '@/config/environment';
-import { API_ENDPOINTS, bookingsApiUrl, agentsApiUrl } from '@/config/apiEndpoints';
+import { API_ENDPOINTS } from '@/config/apiEndpoints';
 
 interface ApiError {
     status: number;
@@ -74,7 +74,7 @@ const BookingsTable: React.FC = () => {
     // const agentURL = `${baseURL}/agent`;
 
     // Fetch agents
-    const fetchAgents = async () => {
+    const fetchAgents = useCallback(async () => {
         try {
             const data = await api.get(API_ENDPOINTS.AGENTS.FETCH, token);
             setAgents(data.agents);
@@ -84,10 +84,10 @@ const BookingsTable: React.FC = () => {
                 setError((error as ApiError).message || 'Failed to fetch agents');
             }
         }
-    };
+    }, [token]);
 
     // Fetch bookings
-    const fetchBookings = async () => {
+    const fetchBookings = useCallback(async () => {
         try {
             setLoading(true);
             setError('');
@@ -102,7 +102,7 @@ const BookingsTable: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [token]);
 
     useEffect(() => {
         if (isAuthenticated && token) {
@@ -112,7 +112,7 @@ const BookingsTable: React.FC = () => {
                 fetchBookings()
             ]);
         }
-    }, [isAuthenticated, token]);
+    }, [isAuthenticated, token, fetchAgents, fetchBookings]);
 
     // Get unique values for filter dropdowns
     const uniqueCountries = useMemo(() =>

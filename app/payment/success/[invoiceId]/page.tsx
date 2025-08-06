@@ -1,14 +1,13 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { paymentApi } from '@/utils/paymentApi';
 import { Invoice, Payment } from '@/types/PaymentTypes';
 import UILoader from '@/components/UILoader';
 import Link from 'next/link';
 
 const PaymentSuccessPage: React.FC = () => {
-    const params = useParams();
     const searchParams = useSearchParams();
     const [verificationStatus, setVerificationStatus] = useState<'verifying' | 'success' | 'failed'>('verifying');
     const [invoice, setInvoice] = useState<Invoice | null>(null);

@@ -11,6 +11,25 @@ export const SessionExpiryWarning: React.FC = () => {
     const [timeRemaining, setTimeRemaining] = useState<number>(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
+    const handleExtendSession = useCallback(async () => {
+        setIsRefreshing(true);
+        try {
+            const success = await refreshToken();
+            if (success) {
+                setShowWarning(false);
+                setTimeRemaining(0);
+            } else {
+                // Refresh failed, will logout
+                logout();
+            }
+        } catch (error) {
+            console.error('Failed to extend session:', error);
+            logout();
+        } finally {
+            setIsRefreshing(false);
+        }
+    }, [refreshToken, logout]);
+
     useEffect(() => {
         if (!token) {
             setShowWarning(false);
@@ -77,24 +96,6 @@ export const SessionExpiryWarning: React.FC = () => {
         };
     }, [token, logout, showWarning, isRefreshing, rememberMe, handleExtendSession]);
 
-    const handleExtendSession = useCallback(async () => {
-        setIsRefreshing(true);
-        try {
-            const success = await refreshToken();
-            if (success) {
-                setShowWarning(false);
-                setTimeRemaining(0);
-            } else {
-                // Refresh failed, will logout
-                logout();
-            }
-        } catch (error) {
-            console.error('Failed to extend session:', error);
-            logout();
-        } finally {
-            setIsRefreshing(false);
-        }
-    }, [refreshToken, logout]);
 
     const formatTime = (seconds: number): string => {
         const minutes = Math.floor(seconds / 60);

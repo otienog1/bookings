@@ -1,11 +1,15 @@
 "use client"
 
 import React, { useEffect, useState } from 'react';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from 'date-fns';
 import { Booking, BookingFormProps } from '@/types/BookingTypes';
 import { Agent } from '@/types/AgentTypes';
-import { Select } from '@headlessui/react';
 import { api } from '@/utils/api';
 import { useAuth } from './auth/AuthContext';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
@@ -105,175 +109,186 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
     };
 
     return (
-        <form onSubmit={handleSubmit} className="text-xs">
-            <h2 className="text-lg font-semibold mb-4 pb-1 border-b">
-                {booking ? 'Edit Booking' : 'New Booking'}
-            </h2>
+        <Card className="w-full max-w-2xl mx-auto">
+            <CardHeader>
+                <CardTitle className="text-xl font-bold">
+                    {booking ? 'Edit Booking' : 'New Booking'}
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && (
+                        <Alert variant="destructive">
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
 
-            {error && (
-                <Alert className="mb-4 bg-red-50 border-red-200">
-                    <AlertTitle>Heads Up!</AlertTitle>
-                    <AlertDescription className="text-red-800">{error}</AlertDescription>
-                </Alert>
-            )}
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Name</Label>
+                        <Input
+                            id="name"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            placeholder="Enter booking name"
+                            required
+                        />
+                    </div>
 
-            <label>
-                <span className='flex mb-1'>Name</span>
-                <input
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Name"
-                    required
-                    className="border p-2 mb-2 w-full uppercase text-xs"
-                />
-            </label>
-
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-2 text-xs'>
-                <label>
-                    <span>Arrival</span>
-                    <input
-                        name="date_from"
-                        type="date"
-                        value={formData.date_from}
-                        onChange={handleChange}
-                        required
-                        className="border p-2 mb-2 w-full uppercase text-xs"
-                    />
-                </label>
-                <label>
-                    <span>Departure</span>
-                    <input
-                        name="date_to"
-                        type="date"
-                        value={formData.date_to}
-                        onChange={handleChange}
-                        required
-                        className="border p-2 mb-2 w-full uppercase text-xs"
-                    />
-                </label>
-                <label>
-                    <span>Destination</span>
-                    <input
-                        name="country"
-                        value={formData.country}
-                        onChange={handleChange}
-                        placeholder="Country"
-                        required
-                        className="border p-2 mb-2 w-full uppercase text-xs"
-                    />
-                </label>
-                <label>
-                    <span>Total Pax</span>
-                    <input
-                        name="pax"
-                        type="number"
-                        min="0"
-                        value={formData.pax}
-                        onChange={handleChange}
-                        placeholder="Total Pax"
-                        required
-                        className="border p-2 mb-2 w-full uppercase text-xs"
-                    />
-                </label>
-                <label>
-                    <span>Ladies</span>
-                    <input
-                        name="ladies"
-                        type="number"
-                        min="0"
-                        value={formData.ladies}
-                        onChange={handleChange}
-                        placeholder="Ladies"
-                        required
-                        className="border p-2 mb-2 w-full uppercase text-xs"
-                    />
-                </label>
-                <label>
-                    <span>Men</span>
-                    <input
-                        name="men"
-                        type="number"
-                        min="0"
-                        value={formData.men}
-                        onChange={handleChange}
-                        placeholder="Men"
-                        required
-                        className="border p-2 mb-2 w-full uppercase text-xs"
-                    />
-                </label>
-                <label>
-                    <span>Children</span>
-                    <input
-                        name="children"
-                        type="number"
-                        min="0"
-                        value={formData.children}
-                        onChange={handleChange}
-                        placeholder="Children"
-                        required
-                        className="border p-2 mb-2 w-full uppercase text-xs"
-                    />
-                </label>
-                <label>
-                    <span>Teens</span>
-                    <input
-                        name="teens"
-                        type="number"
-                        min="0"
-                        value={formData.teens}
-                        onChange={handleChange}
-                        placeholder="Teens"
-                        required
-                        className="border p-2 mb-2 w-full uppercase text-xs"
-                    />
-                </label>
-                <label className='flex flex-col'>
-                    <span>Agent</span>
-                    <Select
-                        name="agent_id"
-                        value={formData.agent_id}
-                        onChange={handleChange}
-                        required
-                        aria-label='Select Agent'
-                        className="border p-2 mb-2 w-full uppercase text-xs"
-                    >
-                        <option value="">Select Agent</option>
-                        {agents.map(agent => (
-                            <option key={agent.id} value={agent.id}>
-                                {agent.name}
-                            </option>
-                        ))}
-                    </Select>
-                </label>
-                <label>
-                    <span>Consultant</span>
-                    <input
-                        name="consultant"
-                        value={formData.consultant}
-                        onChange={handleChange}
-                        placeholder="Consultant"
-                        required
-                        className="border p-2 mb-2 w-full uppercase text-xs"
-                    />
-                </label>
-            </div>
-            <div className='flex justify-end space-x-2 mt-4'>
-                <button
-                    type="button"
-                    onClick={onCancel}
-                    className="px-4 py-2 bg-gray-300 hover:bg-gray-400 transition-colors uppercase"
-                >
-                    Cancel
-                </button>
-                <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 transition-colors text-white uppercase"
-                >
-                    {booking ? 'Update' : 'Create'} Booking
-                </button>
-            </div>
-        </form>
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                        <div className="space-y-2">
+                            <Label htmlFor="date_from">Arrival Date</Label>
+                            <Input
+                                id="date_from"
+                                name="date_from"
+                                type="date"
+                                value={formData.date_from}
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="date_to">Departure Date</Label>
+                            <Input
+                                id="date_to"
+                                name="date_to"
+                                type="date"
+                                value={formData.date_to}
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="country">Destination</Label>
+                            <Input
+                                id="country"
+                                name="country"
+                                value={formData.country}
+                                onChange={handleChange}
+                                placeholder="Enter country"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="pax">Total PAX</Label>
+                            <Input
+                                id="pax"
+                                name="pax"
+                                type="number"
+                                min="0"
+                                value={formData.pax}
+                                onChange={handleChange}
+                                placeholder="0"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="ladies">Ladies</Label>
+                            <Input
+                                id="ladies"
+                                name="ladies"
+                                type="number"
+                                min="0"
+                                value={formData.ladies}
+                                onChange={handleChange}
+                                placeholder="0"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="men">Men</Label>
+                            <Input
+                                id="men"
+                                name="men"
+                                type="number"
+                                min="0"
+                                value={formData.men}
+                                onChange={handleChange}
+                                placeholder="0"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="children">Children</Label>
+                            <Input
+                                id="children"
+                                name="children"
+                                type="number"
+                                min="0"
+                                value={formData.children}
+                                onChange={handleChange}
+                                placeholder="0"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="teens">Teens</Label>
+                            <Input
+                                id="teens"
+                                name="teens"
+                                type="number"
+                                min="0"
+                                value={formData.teens}
+                                onChange={handleChange}
+                                placeholder="0"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="agent_id">Agent</Label>
+                            <Select
+                                value={formData.agent_id?.toString() || ""}
+                                onValueChange={(value) => {
+                                    const selectedAgent = agents.find(agent => agent.id === parseInt(value));
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        agent_id: parseInt(value) || 0,
+                                        agent_name: selectedAgent?.name || '',
+                                        agent_country: selectedAgent?.country || ''
+                                    }));
+                                }}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select an agent" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {agents.map(agent => (
+                                        <SelectItem key={agent.id} value={agent.id.toString()}>
+                                            {agent.name} - {agent.country}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="consultant">Consultant</Label>
+                            <Input
+                                id="consultant"
+                                name="consultant"
+                                value={formData.consultant}
+                                onChange={handleChange}
+                                placeholder="Enter consultant name"
+                                required
+                            />
+                        </div>
+                    </div>
+                    <div className='flex justify-end space-x-2 pt-4 border-t'>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={onCancel}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                        >
+                            {booking ? 'Update' : 'Create'} Booking
+                        </Button>
+                    </div>
+                </form>
+            </CardContent>
+        </Card>
     );
 };
 

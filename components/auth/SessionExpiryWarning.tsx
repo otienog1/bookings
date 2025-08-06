@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import jwt from 'jsonwebtoken';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -75,9 +75,9 @@ export const SessionExpiryWarning: React.FC = () => {
             clearInterval(interval);
             if (countdownInterval) clearInterval(countdownInterval);
         };
-    }, [token, logout, showWarning, isRefreshing, rememberMe]);
+    }, [token, logout, showWarning, isRefreshing, rememberMe, handleExtendSession]);
 
-    const handleExtendSession = async () => {
+    const handleExtendSession = useCallback(async () => {
         setIsRefreshing(true);
         try {
             const success = await refreshToken();
@@ -94,7 +94,7 @@ export const SessionExpiryWarning: React.FC = () => {
         } finally {
             setIsRefreshing(false);
         }
-    };
+    }, [refreshToken, logout]);
 
     const formatTime = (seconds: number): string => {
         const minutes = Math.floor(seconds / 60);

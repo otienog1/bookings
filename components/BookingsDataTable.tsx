@@ -135,10 +135,7 @@ export function BookingsDataTable({
         const booking = row.original
         return (
           <div className="text-sm">
-            <div className="font-medium">{booking.agent_name || booking.agent || 'N/A'}</div>
-            {booking.agent_country && (
-              <div className="text-muted-foreground">{booking.agent_country}</div>
-            )}
+            <div className="font-medium">{booking.agent || 'N/A'}</div>
           </div>
         )
       },

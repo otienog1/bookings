@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import jwt from 'jsonwebtoken';
 import { config } from '@/config/environment';
@@ -106,7 +106,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    const logout = () => {
+    const logout = useCallback(() => {
         setUser(null);
         setToken(null);
         setRememberMe(false);
@@ -115,10 +115,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.removeItem('user');
         localStorage.removeItem('rememberMe');
         router.push('/');
-    };
+    }, [router]);
 
     // Refresh token function
-    const refreshToken = async (): Promise<boolean> => {
+    const refreshToken = useCallback(async (): Promise<boolean> => {
         const currentRefreshToken = localStorage.getItem('refreshToken');
 
         if (!currentRefreshToken) return false;
@@ -150,7 +150,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
 
         return false;
-    };
+    }, [rememberMe]);
 
     // Override global fetch with our authenticated version
     useEffect(() => {
@@ -159,7 +159,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return () => {
             window.fetch = window.fetch;
         };
-    }, []);
+    }, [logout, refreshToken]);
 
     // Initialize auth state from localStorage on mount
     useEffect(() => {
@@ -197,7 +197,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 logout();
             }
         }
-    }, []);
+    }, [logout, refreshToken]);
 
     // Set up interval to refresh token before expiry
     useEffect(() => {
@@ -236,7 +236,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
             return () => clearInterval(interval);
         }
-    }, [token]);
+    }, [token, logout, refreshToken]);
 
     const login = async (username: string, password: string, rememberMe: boolean = false) => {
         setIsLoading(true);

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format, isBefore, isAfter, startOfDay, endOfDay } from 'date-fns';
 import React from 'react';
 import BookingForm from './BookingForm';
@@ -93,17 +93,7 @@ const BookingsTable: React.FC = () => {
             setError('');
 
             const data: BookingsResponse = await api.get(API_ENDPOINTS.BOOKINGS.FETCH, token);
-
-            // Process bookings to add agent names from the agents array
-            const processedBookings = data.bookings.map(booking => {
-                const agent = agents.find(a => a.id === booking.agent_id);
-                return {
-                    ...booking,
-                    agent: agent ? agent.name : 'Unknown Agent'
-                };
-            });
-
-            const sortedBookings = sortBookingsByDate(processedBookings);
+            const sortedBookings = sortBookingsByDate(data.bookings);
             setBookings(sortedBookings);
         } catch (error) {
             if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
@@ -116,15 +106,13 @@ const BookingsTable: React.FC = () => {
 
     useEffect(() => {
         if (isAuthenticated && token) {
-            fetchAgents();
+            // Fetch both agents and bookings in parallel
+            Promise.all([
+                fetchAgents(),
+                fetchBookings()
+            ]);
         }
     }, [isAuthenticated, token]);
-
-    useEffect(() => {
-        if (isAuthenticated && token && agents.length > 0) {
-            fetchBookings();
-        }
-    }, [isAuthenticated, token, agents]);
 
     // Get unique values for filter dropdowns
     const uniqueCountries = useMemo(() =>
@@ -163,24 +151,36 @@ const BookingsTable: React.FC = () => {
         });
     };
 
+    // Memoize agent lookup for performance
+    const agentLookup = useMemo(() => {
+        const lookup = new Map();
+        agents.forEach(agent => lookup.set(agent.id, agent.name));
+        return lookup;
+    }, [agents]);
+
     // Apply all filters
     const filteredBookings = useMemo(() => {
-        let filtered = [...bookings];
+        // Early return if no bookings
+        if (bookings.length === 0) return [];
 
-        // Search filter
+        // Add agent names efficiently using Map lookup
+        const bookingsWithAgents = bookings.map(booking => ({
+            ...booking,
+            agent: agentLookup.get(booking.agent_id) || 'Unknown Agent'
+        }));
+
+        let filtered = bookingsWithAgents;
+
+        // Search filter - early return if no match
         if (filters.search) {
             const searchLower = filters.search.toLowerCase();
-            filtered = filtered.filter(booking => {
-                const searchFields = [
-                    booking.name,
-                    booking.agent,
-                    booking.consultant,
-                    booking.country,
-                    booking.created_by
-                ].map(field => field?.toLowerCase() || '');
-
-                return searchFields.some(field => field.includes(searchLower));
-            });
+            filtered = filtered.filter(booking => 
+                booking.name?.toLowerCase().includes(searchLower) ||
+                booking.agent?.toLowerCase().includes(searchLower) ||
+                booking.consultant?.toLowerCase().includes(searchLower) ||
+                booking.country?.toLowerCase().includes(searchLower) ||
+                booking.created_by?.toLowerCase().includes(searchLower)
+            );
         }
 
         // Status filter
@@ -290,7 +290,7 @@ const BookingsTable: React.FC = () => {
         }
 
         return filtered;
-    }, [bookings, filters, sortConfig, user?.id]);
+    }, [bookings, agentLookup, filters, sortConfig, user?.id]);
 
     // Group bookings by year and month
     useEffect(() => {

@@ -1,8 +1,22 @@
 "use client"
 
 import React, { useEffect, useState } from 'react';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Save, X } from 'lucide-react';
 import { Agent, AgentFormProps } from '@/types/AgentTypes';
+import RichTextEditor from '@/components/blocks/editor/rich-text-editor';
 
 const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel }) => {
     const [formData, setFormData] = useState<Agent>({
@@ -22,20 +36,35 @@ const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel }) => {
     useEffect(() => {
         if (agent) {
             setFormData({
-                ...agent
+                ...agent,
+                name: agent.name || '',
+                company: agent.company || '',
+                email: agent.email || '',
+                phone: agent.phone || '',
+                country: agent.country || '',
+                address: agent.address || '',
+                notes: agent.notes || ''
             });
         }
     }, [agent]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
-        
+
         if (type === 'checkbox') {
             const checked = (e.target as HTMLInputElement).checked;
             setFormData(prev => ({ ...prev, [name]: checked }));
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
+    };
+
+    const handleNotesChange = (html: string) => {
+        setFormData(prev => ({ ...prev, notes: html }));
+    };
+
+    const handleCountryChange = (value: string) => {
+        setFormData(prev => ({ ...prev, country: value }));
     };
 
     const validateForm = (): boolean => {
@@ -58,128 +87,189 @@ const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel }) => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="text-xs">
-            <h2 className="text-lg font-semibold mb-4 pb-1 border-b">
-                {agent ? 'Edit Agent' : 'New Agent'}
-            </h2>
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-3 pt-6">
+            {/* Form Section */}
+            <div className="space-y-4 sm:space-y-6 xl:col-span-2">
+                <Card>
+                    <CardHeader className="pb-4">
+                        <CardTitle className="text-lg font-semibold">
+                            Agent Information
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                            Fill in the details below to {agent ? 'update the' : 'create a new'} agent profile.
+                        </p>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {error && (
+                                <Alert variant="destructive">
+                                    <AlertTitle>Error</AlertTitle>
+                                    <AlertDescription>{error}</AlertDescription>
+                                </Alert>
+                            )}
 
-            {error && (
-                <Alert className="mb-4 bg-red-50 border-red-200">
-                    <AlertTitle>Heads Up!</AlertTitle>
-                    <AlertDescription className="text-red-800">{error}</AlertDescription>
-                </Alert>
-            )}
+                            {/* Basic Information */}
+                            <div className="space-y-4">
+                                <h3 className="text-base font-medium text-foreground border-b pb-2">Basic Information</h3>
+                                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="name" className="text-sm font-medium">Full Name *</Label>
+                                        <Input
+                                            id="name"
+                                            name="name"
+                                            value={formData.name}
+                                            onChange={handleChange}
+                                            placeholder="Enter agent's full name"
+                                            required
+                                            className="h-10 text-sm focus:ring-2 focus:ring-primary/20"
+                                        />
+                                    </div>
 
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-2 text-xs'>
-                <label>
-                    <span className='flex mb-1'>Name</span>
-                    <input
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Name"
-                        required
-                        className="border p-2 mb-2 w-full uppercase text-xs"
-                    />
-                </label>
-                
-                <label>
-                    <span className='flex mb-1'>Company</span>
-                    <input
-                        name="company"
-                        value={formData.company}
-                        onChange={handleChange}
-                        placeholder="Company"
-                        className="border p-2 mb-2 w-full uppercase text-xs"
-                    />
-                </label>
-                
-                <label>
-                    <span className='flex mb-1'>Email</span>
-                    <input
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="Email"
-                        required
-                        className="border p-2 mb-2 w-full text-xs"
-                    />
-                </label>
-                
-                <label>
-                    <span className='flex mb-1'>Phone</span>
-                    <input
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="Phone"
-                        className="border p-2 mb-2 w-full text-xs"
-                    />
-                </label>
-                
-                <label>
-                    <span className='flex mb-1'>Country</span>
-                    <input
-                        name="country"
-                        value={formData.country}
-                        onChange={handleChange}
-                        placeholder="Country"
-                        required
-                        className="border p-2 mb-2 w-full uppercase text-xs"
-                    />
-                </label>
-                
-                <label>
-                    <span className='flex mb-1'>Address</span>
-                    <input
-                        name="address"
-                        value={formData.address}
-                        onChange={handleChange}
-                        placeholder="Address"
-                        className="border p-2 mb-2 w-full uppercase text-xs"
-                    />
-                </label>
-                
-                <label className="col-span-2">
-                    <span className='flex mb-1'>Notes</span>
-                    <textarea
-                        name="notes"
-                        value={formData.notes}
-                        onChange={handleChange}
-                        placeholder="Notes"
-                        className="border p-2 mb-2 w-full text-xs h-24"
-                    />
-                </label>
-                
-                <label className="flex items-center">
-                    <input
-                        name="is_active"
-                        type="checkbox"
-                        checked={formData.is_active}
-                        onChange={handleChange}
-                        className="mr-2"
-                    />
-                    <span>Active</span>
-                </label>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="company" className="text-sm font-medium">Company</Label>
+                                        <Input
+                                            id="company"
+                                            name="company"
+                                            value={formData.company}
+                                            onChange={handleChange}
+                                            placeholder="Company or organization"
+                                            className="h-10 text-sm focus:ring-2 focus:ring-primary/20"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Contact Information */}
+                            <div className="space-y-4">
+                                <h3 className="text-base font-medium text-foreground border-b pb-2">Contact Information</h3>
+                                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="email" className="text-sm font-medium">Email Address *</Label>
+                                        <Input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            value={formData.email}
+                                            onChange={handleChange}
+                                            placeholder="agent@example.com"
+                                            required
+                                            className="h-10 text-sm focus:ring-2 focus:ring-primary/20"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
+                                        <Input
+                                            id="phone"
+                                            name="phone"
+                                            value={formData.phone}
+                                            onChange={handleChange}
+                                            placeholder="+1 (555) 123-4567"
+                                            className="h-10 text-sm focus:ring-2 focus:ring-primary/20"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Location Information */}
+                            <div className="space-y-4">
+                                <h3 className="text-base font-medium text-foreground border-b pb-2">Location</h3>
+                                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="country" className="text-sm font-medium">Country *</Label>
+                                        <Select
+                                            value={formData.country}
+                                            onValueChange={handleCountryChange}
+                                            required
+                                        >
+                                            <SelectTrigger className="h-10 text-sm focus:ring-2 focus:ring-primary/20">
+                                                <SelectValue placeholder="Select a country" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="spain">Spain</SelectItem>
+                                                <SelectItem value="brazil">Brazil</SelectItem>
+                                                <SelectItem value="colombia">Colombia</SelectItem>
+                                                <SelectItem value="chile">Chile</SelectItem>
+                                                <SelectItem value="usa">USA</SelectItem>
+                                                <SelectItem value="uk">UK</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="address" className="text-sm font-medium">Address</Label>
+                                        <Input
+                                            id="address"
+                                            name="address"
+                                            value={formData.address}
+                                            onChange={handleChange}
+                                            placeholder="Street address"
+                                            className="h-10 text-sm focus:ring-2 focus:ring-primary/20"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Additional Information */}
+                            <div className="space-y-4">
+                                <h3 className="text-base font-medium text-foreground border-b pb-2">Additional Information</h3>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="notes" className="text-sm font-medium">Notes</Label>
+                                        <RichTextEditor
+                                            value={formData.notes}
+                                            onChange={handleNotesChange}
+                                            placeholder="Any additional notes or comments about this agent..."
+                                            className="text-sm"
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center space-x-3 p-4 bg-muted/50 rounded-md">
+                                        <Checkbox
+                                            id="is_active"
+                                            checked={formData.is_active}
+                                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked as boolean }))}
+                                        />
+                                        <div>
+                                            <Label htmlFor="is_active" className="text-sm font-medium">Active Agent</Label>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                Active agents can create bookings and receive notifications
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
             </div>
-            
-            <div className='flex justify-end space-x-2 mt-4'>
-                <button
-                    type="button"
-                    onClick={onCancel}
-                    className="px-4 py-2 bg-gray-300 hover:bg-gray-400 transition-colors uppercase"
-                >
-                    Cancel
-                </button>
-                <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 transition-colors text-white uppercase"
-                >
-                    {agent ? 'Update' : 'Create'} Agent
-                </button>
+
+            {/* Actions Sidebar */}
+            <div className="space-y-4 sm:space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Actions</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex gap-2 pt-6">
+                        <Button
+                            onClick={handleSubmit}
+                            className="flex-1 justify-center"
+                        >
+                            <Save className="h-4 w-4 mr-2" />
+                            {agent ? 'Update' : 'Save'} Agent
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={onCancel}
+                            className="flex-1 justify-center"
+                        >
+                            Cancel
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
-        </form>
+        </div>
     );
 };
 

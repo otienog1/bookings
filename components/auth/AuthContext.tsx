@@ -23,6 +23,7 @@ interface AuthContextType {
     logout: () => void;
     refreshToken: () => Promise<boolean>;
     isLoading: boolean;
+    isInitializing: boolean;
     error: string | null;
     clearError: () => void;
     isAuthenticated: boolean;
@@ -84,6 +85,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isInitializing, setIsInitializing] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [rememberMe, setRememberMe] = useState(false);
     const router = useRouter();
@@ -124,7 +126,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (!currentRefreshToken) return false;
 
         try {
-            const response = await fetch(config.getApiUrl(API_ENDPOINTS.AUTH.LOGIN), {
+            const response = await fetch(config.getApiUrl(API_ENDPOINTS.AUTH.REFRESH), {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${currentRefreshToken}`,
@@ -168,7 +170,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const storedRememberMe = localStorage.getItem('rememberMe') === 'true';
 
         if (storedToken && storedUser) {
-            setToken(storedToken);
             setRememberMe(storedRememberMe);
 
             try {
@@ -177,17 +178,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 if (decoded && decoded.exp) {
                     const isExpired = decoded.exp * 1000 < Date.now();
 
-                    if (isExpired) {
-                        // Try to refresh the token
-                        refreshToken().then(success => {
-                            if (!success) {
-                                logout();
-                            } else {
-                                setUser(JSON.parse(localStorage.getItem('user') || '{}'));
-                            }
-                        });
-                    } else {
+                    if (!isExpired) {
+                        // Token is still valid, set auth state
+                        setToken(storedToken);
                         setUser(JSON.parse(storedUser));
+                    } else {
+                        // Token expired, clear auth state
+                        logout();
                     }
                 } else {
                     logout();
@@ -197,7 +194,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 logout();
             }
         }
-    }, [logout, refreshToken]);
+        
+        setIsInitializing(false);
+    }, [logout]);
 
     // Set up interval to refresh token before expiry
     useEffect(() => {
@@ -284,9 +283,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         logout,
         refreshToken,
         isLoading,
+        isInitializing,
         error,
         clearError,
-        isAuthenticated: !!token && checkTokenExpiry(),
+        isAuthenticated: !!token && !!user,
         isAdmin: user?.role === 'admin',
         checkTokenExpiry,
         rememberMe

@@ -1,5 +1,5 @@
 export interface Agent {
-    id: number;
+    id: string | number;
     name: string;
     company?: string;
     email: string;
@@ -8,7 +8,7 @@ export interface Agent {
     address?: string;
     notes?: string;
     is_active: boolean;
-    user_id: number;
+    user_id: string | number;
 }
 
 export interface AgentFormProps {

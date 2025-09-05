@@ -15,19 +15,20 @@ export const API_ENDPOINTS = {
     // Booking endpoints
     BOOKINGS: {
         FETCH: '/booking/fetch',
+        GET: (id: string) => `/booking/${id}`,
         CREATE: '/booking/create',
-        EDIT: (id: number) => `/booking/edit/${id}`,
-        DELETE: (id: number) => `/booking/delete/${id}`,
+        EDIT: (id: string) => `/booking/edit/${id}`,
+        DELETE: (id: string) => `/booking/delete/${id}`,
         IMPORT: '/booking/import'
     },
 
     // Agent endpoints
     AGENTS: {
         FETCH: '/agent/fetch',
-        GET: (id: number) => `/agent/${id}`,
+        GET: (id: string) => `/agent/${id}`,
         CREATE: '/agent/create',
-        EDIT: (id: number) => `/agent/edit/${id}`,
-        DELETE: (id: number) => `/agent/delete/${id}`,
+        EDIT: (id: string) => `/agent/edit/${id}`,
+        DELETE: (id: string) => `/agent/delete/${id}`,
         IMPORT: '/agent/import'
     },
 
@@ -40,6 +41,14 @@ export const API_ENDPOINTS = {
         INVOICES: '/payment/invoices',
         CANCEL_INVOICE: (id: string) => `/payment/invoice/${id}/cancel`,
         WEBHOOK: '/payment/webhook'
+    },
+
+    // Dashboard/Analytics endpoints
+    DASHBOARD: {
+        STATS: '/dashboard/stats',
+        REVENUE_CHART: '/dashboard/revenue-chart',
+        RECENT_BOOKINGS: '/dashboard/recent-bookings',
+        RECENT_USERS: '/dashboard/recent-users'
     }
 } as const;
 
@@ -66,4 +75,8 @@ export const agentsApiUrl = (endpoint: keyof typeof API_ENDPOINTS.AGENTS | strin
 export const paymentsApiUrl = (endpoint: keyof typeof API_ENDPOINTS.PAYMENTS | string): string => {
     const url = typeof endpoint === 'string' ? endpoint : API_ENDPOINTS.PAYMENTS[endpoint];
     return getFullApiUrl(url);
+};
+
+export const dashboardApiUrl = (endpoint: keyof typeof API_ENDPOINTS.DASHBOARD): string => {
+    return getFullApiUrl(API_ENDPOINTS.DASHBOARD[endpoint]);
 };

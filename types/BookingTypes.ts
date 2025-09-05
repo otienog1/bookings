@@ -1,5 +1,5 @@
 export interface Booking {
-    id: number;
+    id: string | number;
     name: string;
     date_from: string;
     date_to: string;
@@ -9,10 +9,10 @@ export interface Booking {
     men: number;
     children: number;
     teens: number;
-    agent_id: number;
+    agent_id: string | number;
     agent: string;
     consultant: string;
-    user_id?: number;
+    user_id?: string | number;
     created_by?: string;
 }
 

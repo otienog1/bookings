@@ -1,18 +1,38 @@
 "use client"
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { format, isBefore, isAfter, startOfDay, endOfDay } from 'date-fns';
+import { format, isBefore, isAfter, startOfDay, endOfDay, isValid } from 'date-fns';
+import { type DateRange } from 'react-day-picker';
+import { useRouter } from 'next/navigation';
 import React from 'react';
 import BookingForm from './BookingForm';
-import Modal from './Modal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { Combobox } from '@/components/ui/combobox';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { BookingsDataTable } from './BookingsDataTable';
+import { DashboardCard } from '@/components/ui/dashboard-card';
+import { DashboardHeader } from '@/components/ui/dashboard-header';
+import { QuickActions } from '@/components/ui/quick-actions';
 import * as XLSX from 'xlsx';
-import UILoader from './UILoader';
 import { api } from '@/utils/api';
 import { useAuth } from './auth/AuthContext';
-import { Booking, BookingsResponse, GroupedBookings } from '@/types/BookingTypes';
+import { Booking, BookingsResponse } from '@/types/BookingTypes';
 import { Agent } from '@/types/AgentTypes';
-import { ChevronDown, ChevronUp, Filter, X, Download, Upload, Plus } from 'lucide-react';
+import { ChevronDown, ChevronUp, Filter, X, Download, Upload, Plus, Users, Calendar, TrendingUp, FileText, Activity } from 'lucide-react';
 import { config } from '@/config/environment';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
 
@@ -24,8 +44,7 @@ interface ApiError {
 interface Filters {
     search: string;
     status: 'all' | 'upcoming' | 'ongoing' | 'completed';
-    dateFrom: string;
-    dateTo: string;
+    dateRange: DateRange | undefined;
     agent: string;
     country: string;
     consultant: string;
@@ -34,14 +53,26 @@ interface Filters {
     showOnlyMyBookings: boolean;
 }
 
-interface SortConfig {
-    key: keyof Booking | null;
-    direction: 'asc' | 'desc';
-}
+// Helper function to parse MongoDB date format
+const parseMongoDate = (dateValue: any): Date => {
+    if (!dateValue) return new Date(0); // Return epoch if null/undefined
 
-const BookingsTable: React.FC = () => {
+    if (dateValue instanceof Date) {
+        return dateValue;
+    }
+
+    if (typeof dateValue === 'object' && dateValue !== null && '$date' in dateValue) {
+        // MongoDB date format: { "$date": "2024-09-02T00:00:00Z" }
+        return new Date((dateValue as { $date: string }).$date);
+    }
+
+    // Fallback to regular date parsing
+    return new Date(dateValue);
+};
+
+const BookingManagementApp: React.FC = () => {
+    const router = useRouter();
     const [bookings, setBookings] = useState<Booking[]>([]);
-    const [groupedBookings, setGroupedBookings] = useState<GroupedBookings>({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,8 +80,8 @@ const BookingsTable: React.FC = () => {
     const [deleteConfirmBooking, setDeleteConfirmBooking] = useState<Booking | null>(null);
     const [agents, setAgents] = useState<Agent[]>([]);
     const [showFilters, setShowFilters] = useState(false);
-    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: 'asc' });
-
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const { token, isAuthenticated, isAdmin, user } = useAuth();
 
@@ -58,20 +89,14 @@ const BookingsTable: React.FC = () => {
     const [filters, setFilters] = useState<Filters>({
         search: '',
         status: 'all',
-        dateFrom: '',
-        dateTo: '',
-        agent: '',
-        country: '',
-        consultant: '',
+        dateRange: undefined,
+        agent: 'all',
+        country: 'all',
+        consultant: 'all',
         minPax: '',
         maxPax: '',
         showOnlyMyBookings: true
     });
-
-    // const baseURL = "https://bookingsendpoint.onrender.com";
-    // const baseURL = "http://localhost:5000"; // Use your local server URL for development
-    // const bookingURL = `${baseURL}/booking`;
-    // const agentURL = `${baseURL}/agent`;
 
     // Fetch agents
     const fetchAgents = useCallback(async () => {
@@ -115,23 +140,26 @@ const BookingsTable: React.FC = () => {
     }, [isAuthenticated, token, fetchAgents, fetchBookings]);
 
     // Get unique values for filter dropdowns
-    const uniqueCountries = useMemo(() =>
-        Array.from(new Set(bookings.map(b => b.country))).sort(),
-        [bookings]
-    );
 
-    const uniqueConsultants = useMemo(() =>
-        Array.from(new Set(bookings.map(b => b.consultant))).sort(),
-        [bookings]
-    );
+
+    // Prepare options for comboboxes
+    const agentOptions = useMemo(() => [
+        { value: 'all', label: 'All Agents' },
+        ...agents.map(agent => ({
+            value: agent.id.toString(),
+            label: agent.name
+        }))
+    ], [agents]);
+
+
 
     // Sort bookings by date
     const sortBookingsByDate = (bookingsToSort: Booking[]): Booking[] => {
         const currentDate = new Date();
 
         const categorizeBooking = (booking: Booking) => {
-            const arrivalDate = new Date(booking.date_from);
-            const departureDate = new Date(booking.date_to);
+            const arrivalDate = parseMongoDate(booking.date_from);
+            const departureDate = parseMongoDate(booking.date_to);
 
             if (arrivalDate <= currentDate && departureDate >= currentDate) return 1; // Ongoing
             if (arrivalDate > currentDate) return 2; // Upcoming
@@ -144,10 +172,10 @@ const BookingsTable: React.FC = () => {
 
             if (categoryA !== categoryB) return categoryA - categoryB;
 
-            const arrivalComparison = new Date(a.date_from).getTime() - new Date(b.date_from).getTime();
+            const arrivalComparison = parseMongoDate(a.date_from).getTime() - parseMongoDate(b.date_from).getTime();
             if (arrivalComparison !== 0) return arrivalComparison;
 
-            return new Date(a.date_to).getTime() - new Date(b.date_to).getTime();
+            return parseMongoDate(a.date_to).getTime() - parseMongoDate(b.date_to).getTime();
         });
     };
 
@@ -163,20 +191,14 @@ const BookingsTable: React.FC = () => {
         // Early return if no bookings
         if (bookings.length === 0) return [];
 
-        // Add agent names efficiently using Map lookup
-        const bookingsWithAgents = bookings.map(booking => ({
-            ...booking,
-            agent: agentLookup.get(booking.agent_id) || 'Unknown Agent'
-        }));
-
-        let filtered = bookingsWithAgents;
+        let filtered = bookings;
 
         // Search filter - early return if no match
         if (filters.search) {
             const searchLower = filters.search.toLowerCase();
-            filtered = filtered.filter(booking => 
+            filtered = filtered.filter(booking =>
                 booking.name?.toLowerCase().includes(searchLower) ||
-                booking.agent?.toLowerCase().includes(searchLower) ||
+                agentLookup.get(booking.agent_id)?.toLowerCase().includes(searchLower) ||
                 booking.consultant?.toLowerCase().includes(searchLower) ||
                 booking.country?.toLowerCase().includes(searchLower) ||
                 booking.created_by?.toLowerCase().includes(searchLower)
@@ -187,8 +209,8 @@ const BookingsTable: React.FC = () => {
         const today = new Date();
         if (filters.status !== 'all') {
             filtered = filtered.filter(booking => {
-                const arrivalDate = new Date(booking.date_from);
-                const departureDate = new Date(booking.date_to);
+                const arrivalDate = parseMongoDate(booking.date_from);
+                const departureDate = parseMongoDate(booking.date_to);
 
                 switch (filters.status) {
                     case 'upcoming':
@@ -204,22 +226,22 @@ const BookingsTable: React.FC = () => {
         }
 
         // Date range filter
-        if (filters.dateFrom || filters.dateTo) {
+        if (filters.dateRange?.from || filters.dateRange?.to) {
             filtered = filtered.filter(booking => {
-                const bookingStart = new Date(booking.date_from);
-                const bookingEnd = new Date(booking.date_to);
+                const bookingStart = parseMongoDate(booking.date_from);
+                const bookingEnd = parseMongoDate(booking.date_to);
 
-                if (filters.dateFrom && filters.dateTo) {
-                    const filterStart = startOfDay(new Date(filters.dateFrom));
-                    const filterEnd = endOfDay(new Date(filters.dateTo));
+                if (filters.dateRange?.from && filters.dateRange?.to) {
+                    const filterStart = startOfDay(filters.dateRange.from);
+                    const filterEnd = endOfDay(filters.dateRange.to);
 
                     // Check if booking overlaps with filter date range
                     return bookingStart <= filterEnd && bookingEnd >= filterStart;
-                } else if (filters.dateFrom) {
-                    const filterStart = startOfDay(new Date(filters.dateFrom));
+                } else if (filters.dateRange?.from) {
+                    const filterStart = startOfDay(filters.dateRange.from);
                     return bookingEnd >= filterStart;
-                } else if (filters.dateTo) {
-                    const filterEnd = endOfDay(new Date(filters.dateTo));
+                } else if (filters.dateRange?.to) {
+                    const filterEnd = endOfDay(filters.dateRange.to);
                     return bookingStart <= filterEnd;
                 }
                 return true;
@@ -227,21 +249,21 @@ const BookingsTable: React.FC = () => {
         }
 
         // Agent filter
-        if (filters.agent) {
+        if (filters.agent && filters.agent !== 'all') {
             filtered = filtered.filter(booking =>
-                booking.agent_id === parseInt(filters.agent)
+                booking.agent_id.toString() === filters.agent
             );
         }
 
         // Country filter
-        if (filters.country) {
+        if (filters.country && filters.country !== 'all') {
             filtered = filtered.filter(booking =>
                 booking.country === filters.country
             );
         }
 
         // Consultant filter
-        if (filters.consultant) {
+        if (filters.consultant && filters.consultant !== 'all') {
             filtered = filtered.filter(booking =>
                 booking.consultant === filters.consultant
             );
@@ -265,84 +287,46 @@ const BookingsTable: React.FC = () => {
         // Hide completed bookings by default unless status filter is 'completed' or 'all'
         if (filters.status !== 'completed' && filters.status !== 'all') {
             filtered = filtered.filter(booking => {
-                const departureDate = new Date(booking.date_to);
+                const departureDate = parseMongoDate(booking.date_to);
                 return departureDate >= today;
             });
         }
 
-        // Apply sorting
-        if (sortConfig.key) {
-            filtered.sort((a, b) => {
-                const aValue = a[sortConfig.key!];
-                const bValue = b[sortConfig.key!];
-
-                if (aValue === null || aValue === undefined) return 1;
-                if (bValue === null || bValue === undefined) return -1;
-
-                if (aValue < bValue) {
-                    return sortConfig.direction === 'asc' ? -1 : 1;
-                }
-                if (aValue > bValue) {
-                    return sortConfig.direction === 'asc' ? 1 : -1;
-                }
-                return 0;
-            });
-        }
-
         return filtered;
-    }, [bookings, agentLookup, filters, sortConfig, user?.id]);
+    }, [bookings, agentLookup, filters, user?.id]);
 
-    // Group bookings by year and month
-    useEffect(() => {
-        const grouped = filteredBookings.reduce<GroupedBookings>((acc, booking) => {
-            const date = new Date(booking.date_from);
-            const year = date.getFullYear().toString();
-            const month = date.getMonth().toString();
-
-            if (!acc[year]) acc[year] = {};
-            if (!acc[year][month]) acc[year][month] = [];
-
-            acc[year][month].push(booking);
-            return acc;
-        }, {});
-
-        setGroupedBookings(grouped);
-    }, [filteredBookings]);
-
-    // Handle sort
-    const handleSort = (key: keyof Booking) => {
-        setSortConfig(prevConfig => ({
-            key,
-            direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
+    // Memoize enhanced bookings with agent names for the data table
+    const enhancedBookings = useMemo(() => {
+        return filteredBookings.map(booking => ({
+            ...booking,
+            agent: agentLookup.get(booking.agent_id) || 'Unknown Agent'
         }));
-    };
+    }, [filteredBookings, agentLookup]);
 
     // Clear all filters
     const clearFilters = () => {
         setFilters({
             search: '',
             status: 'all',
-            dateFrom: '',
-            dateTo: '',
-            agent: '',
-            country: '',
-            consultant: '',
+            dateRange: undefined,
+            agent: 'all',
+            country: 'all',
+            consultant: 'all',
             minPax: '',
             maxPax: '',
             showOnlyMyBookings: true
         });
-        setSortConfig({ key: null, direction: 'asc' });
     };
 
     // Check if any filters are active
     const hasActiveFilters = useMemo(() => {
         return filters.search !== '' ||
             filters.status !== 'all' ||
-            filters.dateFrom !== '' ||
-            filters.dateTo !== '' ||
-            filters.agent !== '' ||
-            filters.country !== '' ||
-            filters.consultant !== '' ||
+            filters.dateRange?.from !== undefined ||
+            filters.dateRange?.to !== undefined ||
+            filters.agent !== 'all' ||
+            filters.country !== 'all' ||
+            filters.consultant !== 'all' ||
             filters.minPax !== '' ||
             filters.maxPax !== '';
     }, [filters]);
@@ -353,13 +337,17 @@ const BookingsTable: React.FC = () => {
             setError('');
             const isEditing = !!booking.id;
             const endpoint = isEditing
-                ? API_ENDPOINTS.BOOKINGS.EDIT(booking.id)
+                ? API_ENDPOINTS.BOOKINGS.EDIT(booking.id.toString())
                 : API_ENDPOINTS.BOOKINGS.CREATE;
 
             const formattedBooking = {
                 ...booking,
-                date_from: format(new Date(booking.date_from), 'MM/dd/yyyy'),
-                date_to: format(new Date(booking.date_to), 'MM/dd/yyyy'),
+                date_from: booking.date_from && isValid(parseMongoDate(booking.date_from))
+                    ? format(parseMongoDate(booking.date_from), 'MM/dd/yyyy')
+                    : booking.date_from,
+                date_to: booking.date_to && isValid(parseMongoDate(booking.date_to))
+                    ? format(parseMongoDate(booking.date_to), 'MM/dd/yyyy')
+                    : booking.date_to,
                 user_id: user?.id
             };
 
@@ -381,7 +369,7 @@ const BookingsTable: React.FC = () => {
     const handleDeleteBooking = async (booking: Booking) => {
         try {
             setError('');
-            await api.delete(API_ENDPOINTS.BOOKINGS.DELETE(booking.id), token);
+            await api.delete(API_ENDPOINTS.BOOKINGS.DELETE(String(booking.id)), token);
 
             setBookings(prev => prev.filter(b => b.id !== booking.id));
             setDeleteConfirmBooking(null);
@@ -405,9 +393,17 @@ const BookingsTable: React.FC = () => {
 
     // Booking status
     const getBookingStatus = (dateFrom: string, dateTo: string): JSX.Element => {
+        if (!dateFrom || !dateTo) {
+            return <span className="text-gray-400">No dates</span>;
+        }
+
         const today = new Date();
         const startDate = new Date(dateFrom);
         const endDate = new Date(dateTo);
+
+        if (!isValid(startDate) || !isValid(endDate)) {
+            return <span className="text-red-400">Invalid dates</span>;
+        }
 
         if (isBefore(today, startDate)) {
             return <span className="text-blue-600 font-medium">Upcoming</span>;
@@ -418,28 +414,22 @@ const BookingsTable: React.FC = () => {
         }
     };
 
-    const formatDate = (dateString: string): string => {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) {
-            console.error(`Invalid date string: ${dateString}`);
-            return '';
-        }
-        return format(date, 'EEE, d MMM');
-    };
-
-
     const exportToExcel = () => {
         const worksheet = XLSX.utils.json_to_sheet(filteredBookings.map(booking => ({
             Name: booking.name,
-            Arrival: formatDate(booking.date_from),
-            Departure: formatDate(booking.date_to),
+            Arrival: booking.date_from && isValid(parseMongoDate(booking.date_from))
+                ? format(parseMongoDate(booking.date_from), 'EEE, d MMM')
+                : 'Invalid date',
+            Departure: booking.date_to && isValid(parseMongoDate(booking.date_to))
+                ? format(parseMongoDate(booking.date_to), 'EEE, d MMM')
+                : 'Invalid date',
             Country: booking.country,
             Pax: booking.pax,
             Ladies: booking.ladies,
             Men: booking.men,
             Children: booking.children,
             Teens: booking.teens,
-            Agent: booking.agent,
+            Agent: agentLookup.get(booking.agent_id) || 'Unknown',
             Consultant: booking.consultant,
             Status: getBookingStatus(booking.date_from, booking.date_to).props.children,
             CreatedBy: booking.created_by || '',
@@ -484,63 +474,234 @@ const BookingsTable: React.FC = () => {
         }
     };
 
+    // Handle dashboard refresh
+
+    // Calculate dashboard stats
+    const dashboardStats = useMemo(() => {
+        const today = new Date();
+        const upcomingBookings = filteredBookings.filter(b => parseMongoDate(b.date_from) > today);
+        const ongoingBookings = filteredBookings.filter(b => {
+            const start = parseMongoDate(b.date_from);
+            const end = parseMongoDate(b.date_to);
+            return start <= today && end >= today;
+        });
+        const totalPax = filteredBookings.reduce((sum, b) => sum + b.pax, 0);
+
+        return [
+            {
+                title: 'Total Bookings',
+                value: filteredBookings.length.toString(),
+                change: '+12%',
+                changeType: 'positive' as const,
+                icon: Calendar,
+                color: 'text-blue-500',
+                bgColor: 'bg-blue-500/10',
+                description: `${bookings.length} total bookings`
+            },
+            {
+                title: 'Total Passengers',
+                value: totalPax.toString(),
+                change: '+8.2%',
+                changeType: 'positive' as const,
+                icon: Users,
+                color: 'text-green-500',
+                bgColor: 'bg-green-500/10',
+                description: 'All passengers combined'
+            },
+            {
+                title: 'Active Bookings',
+                value: ongoingBookings.length.toString(),
+                change: '+15%',
+                changeType: 'positive' as const,
+                icon: Activity,
+                color: 'text-purple-500',
+                bgColor: 'bg-purple-500/10',
+                description: 'Currently ongoing trips'
+            },
+            {
+                title: 'Upcoming Trips',
+                value: upcomingBookings.length.toString(),
+                change: upcomingBookings.length > 10 ? '+24%' : '-5%',
+                changeType: upcomingBookings.length > 10 ? 'positive' as const : 'negative' as const,
+                icon: TrendingUp,
+                color: 'text-orange-500',
+                bgColor: 'bg-orange-500/10',
+                description: 'Future bookings scheduled'
+            }
+        ];
+    }, [filteredBookings, bookings.length]);
+
     return (
-        <div className="px-4 mx-auto">
-            {error && (
-                <Alert className="mb-4 bg-red-50 border-red-200">
-                    <AlertTitle>Heads up!</AlertTitle>
-                    <AlertDescription className="text-red-800">{error}</AlertDescription>
-                </Alert>
-            )}
-
-            {/* Actions Bar */}
-            <div className="mb-4 mt-4">
-                <div className="flex flex-col lg:flex-row justify-between gap-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <button
-                            onClick={() => setShowFilters(!showFilters)}
-                            className={`flex items-center rounded px-3 py-2 text-xs uppercase transition-colors ${hasActiveFilters
-                                ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                                : 'bg-gray-100 hover:bg-gray-200'
-                                }`}
-                        >
-                            <Filter className="h-4 w-4 mr-1" />
-                            Filters {hasActiveFilters && `(Active)`}
-                            {showFilters ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />}
-                        </button>
-
-                        {hasActiveFilters && (
-                            <button
-                                onClick={clearFilters}
-                                className="flex items-center rounded px-3 py-2 bg-gray-100 hover:bg-gray-200 text-xs uppercase transition-colors"
-                            >
-                                <X className="h-4 w-4 mr-1" />
-                                Clear Filters
-                            </button>
-                        )}
-
-                        <div className="text-xs text-gray-600">
-                            Showing {filteredBookings.length} of {bookings.length} bookings
-                        </div>
+        <div className="flex flex-1 flex-col gap-2 p-2 pt-0 sm:gap-4 sm:p-4">
+            <div className="min-h-[calc(100vh-4rem)] flex-1 rounded-md p-3 sm:rounded-xl sm:p-4 md:p-6">
+                <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
+                    {/* Page Header */}
+                    <div className="px-2 sm:px-0">
+                        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                            Bookings
+                        </h1>
+                        <p className="text-muted-foreground text-sm sm:text-base">
+                            Manage and track all your safari bookings.
+                        </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                        <button
-                            onClick={() => openModal()}
-                            className="flex items-center rounded px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white uppercase text-xs transition-colors"
-                        >
-                            <Plus className="h-4 w-4 mr-1" />
-                            New Booking
-                        </button>
-                        <button
-                            onClick={exportToExcel}
-                            className="flex items-center rounded px-4 py-2 bg-green-500 hover:bg-green-600 text-white uppercase text-xs transition-colors"
-                        >
-                            <Download className="h-4 w-4 mr-1" />
-                            Export
-                        </button>
-                        {isAdmin && (
-                            <>
+                    {/* Error Alert */}
+                    {error && (
+                        <Alert variant="destructive" className="mx-2 sm:mx-0">
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
+
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+                        {dashboardStats.map((stat, index) => (
+                            <DashboardCard key={stat.title} stat={stat} index={index} />
+                        ))}
+                    </div>
+
+                    {/* Main Content Grid */}
+                    <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-3">
+                        {/* Main Content Section */}
+                        <div className="space-y-4 sm:space-y-6 xl:col-span-2">
+                            {/* Filters Section */}
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <CardTitle className="text-lg font-semibold">Bookings Overview</CardTitle>
+                                            <p className="text-sm text-muted-foreground mt-1">
+                                                Showing {filteredBookings.length} of {bookings.length} bookings
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                onClick={() => setShowFilters(!showFilters)}
+                                                variant={hasActiveFilters ? "default" : "outline"}
+                                                size="sm"
+                                                className="flex items-center gap-2"
+                                            >
+                                                <Filter className="h-4 w-4" />
+                                                Filters {hasActiveFilters && `(${Object.values(filters).filter(v => v !== '' && v !== 'all' && v !== false && v !== undefined).length})`}
+                                                {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                            </Button>
+
+                                            {hasActiveFilters && (
+                                                <Button
+                                                    onClick={clearFilters}
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="flex items-center gap-1"
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                    Clear All
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </CardHeader>
+
+                                {/* Filters Panel */}
+                                {showFilters && (
+                                    <CardContent>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-4">
+                                            {/* Search */}
+                                            <div className="space-y-2">
+                                                <Label>Search</Label>
+                                                <Input
+                                                    placeholder="Name, agent, consultant..."
+                                                    value={filters.search}
+                                                    onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                                                />
+                                            </div>
+
+                                            {/* Status */}
+                                            <div className="space-y-2">
+                                                <Label>Status</Label>
+                                                <Select
+                                                    value={filters.status}
+                                                    onValueChange={(value) => setFilters({ ...filters, status: value as Filters['status'] })}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select status" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="all">All Statuses</SelectItem>
+                                                        <SelectItem value="upcoming">Upcoming</SelectItem>
+                                                        <SelectItem value="ongoing">Ongoing</SelectItem>
+                                                        <SelectItem value="completed">Completed</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
+                                            {/* Date Range */}
+                                            <div className="space-y-2">
+                                                <Label>Date Range</Label>
+                                                <DateRangePicker
+                                                    date={filters.dateRange}
+                                                    onDateChange={(dateRange) => setFilters({ ...filters, dateRange })}
+                                                    placeholder="Select date range"
+                                                />
+                                            </div>
+
+                                            {/* Agent */}
+                                            <div className="space-y-2">
+                                                <Label>Agent</Label>
+                                                <Combobox
+                                                    options={agentOptions}
+                                                    value={filters.agent}
+                                                    onValueChange={(value) => setFilters({ ...filters, agent: value })}
+                                                    placeholder="All Agents"
+                                                    searchPlaceholder="Search agents..."
+                                                    emptyText="No agents found."
+                                                />
+                                            </div>
+
+                                            {/* Show My Bookings Only */}
+                                            <div className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id="my-bookings"
+                                                    checked={filters.showOnlyMyBookings}
+                                                    onCheckedChange={(checked) => setFilters({ ...filters, showOnlyMyBookings: checked as boolean })}
+                                                />
+                                                <Label htmlFor="my-bookings">My Bookings Only</Label>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                )}
+
+                                {/* Data Table */}
+                                <CardContent className="px-4">
+                                    {loading ? (
+                                        <div className="flex justify-center items-center py-12">
+                                            <div className="text-center">
+                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                                                <p className="text-muted-foreground">Loading bookings...</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <BookingsDataTable
+                                            bookings={enhancedBookings}
+                                            onEdit={openModal}
+                                            onDelete={setDeleteConfirmBooking}
+                                            onView={(booking) => console.log('View booking:', booking)}
+                                        />
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Sidebar Section */}
+                        <div className="space-y-4 sm:space-y-6">
+                            <QuickActions
+                                onAddBooking={() => router.push('/bookings/new')}
+                                onExport={exportToExcel}
+                                onImport={isAdmin ? undefined : undefined}
+                                onGenerateFlyer={() => window.open('/flyer', '_blank')}
+                            />
+
+                            {/* Hidden file input for CSV import */}
+                            {isAdmin && (
                                 <input
                                     type="file"
                                     accept=".csv"
@@ -548,372 +709,57 @@ const BookingsTable: React.FC = () => {
                                     className="sr-only"
                                     id="csvImport"
                                 />
-                                <label
-                                    htmlFor="csvImport"
-                                    className="flex items-center rounded px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white uppercase text-xs transition-colors cursor-pointer"
-                                >
-                                    <Upload className="h-4 w-4 mr-1" />
-                                    Import CSV
-                                </label>
-                            </>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Filters Panel */}
-            {showFilters && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                        {/* Search */}
-                        <div>
-                            <label className="block text-xs font-medium mb-1 uppercase">Search</label>
-                            <input
-                                type="text"
-                                placeholder="Name, agent, consultant..."
-                                value={filters.search}
-                                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                                className="w-full border rounded p-2 text-xs"
-                            />
-                        </div>
-
-                        {/* Status */}
-                        <div>
-                            <label className="block text-xs font-medium mb-1 uppercase">Status</label>
-                            <select
-                                value={filters.status}
-                                onChange={(e) => setFilters({ ...filters, status: e.target.value as Filters['status'] })}
-                                className="w-full border rounded p-2 text-xs uppercase"
-                            >
-                                <option value="all">All Statuses</option>
-                                <option value="upcoming">Upcoming</option>
-                                <option value="ongoing">Ongoing</option>
-                                <option value="completed">Completed</option>
-                            </select>
-                        </div>
-
-                        {/* Date From */}
-                        <div>
-                            <label className="block text-xs font-medium mb-1 uppercase">Date From</label>
-                            <input
-                                type="date"
-                                value={filters.dateFrom}
-                                onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-                                className="w-full border rounded p-2 text-xs"
-                            />
-                        </div>
-
-                        {/* Date To */}
-                        <div>
-                            <label className="block text-xs font-medium mb-1 uppercase">Date To</label>
-                            <input
-                                type="date"
-                                value={filters.dateTo}
-                                onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-                                className="w-full border rounded p-2 text-xs"
-                            />
-                        </div>
-
-                        {/* Agent */}
-                        <div>
-                            <label className="block text-xs font-medium mb-1 uppercase">Agent</label>
-                            <select
-                                value={filters.agent}
-                                onChange={(e) => setFilters({ ...filters, agent: e.target.value })}
-                                className="w-full border rounded p-2 text-xs uppercase"
-                            >
-                                <option value="">All Agents</option>
-                                {agents.map(agent => (
-                                    <option key={agent.id} value={agent.id}>
-                                        {agent.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Country */}
-                        <div>
-                            <label className="block text-xs font-medium mb-1 uppercase">Country</label>
-                            <select
-                                value={filters.country}
-                                onChange={(e) => setFilters({ ...filters, country: e.target.value })}
-                                className="w-full border rounded p-2 text-xs uppercase"
-                            >
-                                <option value="">All Countries</option>
-                                {uniqueCountries.map(country => (
-                                    <option key={country} value={country}>
-                                        {country}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Consultant */}
-                        <div>
-                            <label className="block text-xs font-medium mb-1 uppercase">Consultant</label>
-                            <select
-                                value={filters.consultant}
-                                onChange={(e) => setFilters({ ...filters, consultant: e.target.value })}
-                                className="w-full border rounded p-2 text-xs uppercase"
-                            >
-                                <option value="">All Consultants</option>
-                                {uniqueConsultants.map(consultant => (
-                                    <option key={consultant} value={consultant}>
-                                        {consultant}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Pax Range */}
-                        <div className="grid grid-cols-2 gap-2">
-                            <div>
-                                <label className="block text-xs font-medium mb-1 uppercase">Min Pax</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    placeholder="0"
-                                    value={filters.minPax}
-                                    onChange={(e) => setFilters({ ...filters, minPax: e.target.value })}
-                                    className="w-full border rounded p-2 text-xs"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium mb-1 uppercase">Max Pax</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    placeholder="∞"
-                                    value={filters.maxPax}
-                                    onChange={(e) => setFilters({ ...filters, maxPax: e.target.value })}
-                                    className="w-full border rounded p-2 text-xs"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Show My Bookings Only */}
-                        <div className="flex items-end">
-                            <label className="flex items-center space-x-2 text-xs">
-                                <input
-                                    type="checkbox"
-                                    checked={filters.showOnlyMyBookings}
-                                    onChange={(e) => setFilters({ ...filters, showOnlyMyBookings: e.target.checked })}
-                                    className="rounded"
-                                />
-                                <span className="uppercase">My Bookings Only</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Confirm Delete Modal */}
-            <Modal
-                isOpen={!!deleteConfirmBooking}
-                onClose={() => setDeleteConfirmBooking(null)}
-                backdropClick={true}
-            >
-                <div className="px-4 py-2">
-                    <h2 className="text-lg font-semibold mb-4">Confirm Delete</h2>
-                    <p className="mb-4 normal-case">Are you sure you want to delete the booking for <u>{deleteConfirmBooking?.name}</u>?&nbsp;This action is irreversible.</p>
-                    <div className="flex justify-end space-x-2">
-                        <button
+            {/* Confirm Delete Dialog */}
+            <Dialog open={!!deleteConfirmBooking} onOpenChange={() => setDeleteConfirmBooking(null)}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Confirm Delete</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete the booking for <strong>{deleteConfirmBooking?.name}</strong>?
+                            This action is irreversible.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
                             onClick={() => setDeleteConfirmBooking(null)}
-                            className="px-4 py-2 bg-gray-300 hover:bg-gray-400"
                         >
                             Cancel
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                            variant="destructive"
                             onClick={() => deleteConfirmBooking && handleDeleteBooking(deleteConfirmBooking)}
-                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white"
                         >
-                            Delete
-                        </button>
-                    </div>
-                </div>
-            </Modal>
+                            Delete Booking
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
-            {/* Booking Form Modal */}
-            <Modal isOpen={isModalOpen} onClose={closeModal} backdropClick={false}>
-                <BookingForm
-                    booking={editingBooking}
-                    onSave={handleSaveBooking}
-                    onCancel={closeModal}
-                />
-            </Modal>
-
-            {/* Bookings Table */}
-            <div id="bookings-table" className="bg-white overflow-x-auto">
-                <table className="w-full border-collapse">
-                    <thead>
-                        <tr className="bg-gray-50">
-                            <th
-                                className="border py-2 px-3 text-xs uppercase text-left cursor-pointer hover:bg-gray-100"
-                                onClick={() => handleSort('name')}
-                            >
-                                Name {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th
-                                className="border py-2 px-3 text-xs uppercase text-left cursor-pointer hover:bg-gray-100"
-                                onClick={() => handleSort('date_from')}
-                            >
-                                Arrival {sortConfig.key === 'date_from' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th
-                                className="border py-2 px-3 text-xs uppercase text-left cursor-pointer hover:bg-gray-100"
-                                onClick={() => handleSort('date_to')}
-                            >
-                                Departure {sortConfig.key === 'date_to' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th
-                                className="border py-2 px-3 text-xs uppercase text-left cursor-pointer hover:bg-gray-100"
-                                onClick={() => handleSort('country')}
-                            >
-                                Country {sortConfig.key === 'country' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th
-                                className="border py-2 px-3 text-xs uppercase text-center cursor-pointer hover:bg-gray-100"
-                                onClick={() => handleSort('pax')}
-                            >
-                                Pax {sortConfig.key === 'pax' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th className="border py-2 px-3 text-xs uppercase text-center">Ladies</th>
-                            <th className="border py-2 px-3 text-xs uppercase text-center">Men</th>
-                            <th className="border py-2 px-3 text-xs uppercase text-center">Children</th>
-                            <th className="border py-2 px-3 text-xs uppercase text-center">Teens</th>
-                            <th
-                                className="border py-2 px-3 text-xs uppercase text-left cursor-pointer hover:bg-gray-100"
-                                onClick={() => handleSort('agent')}
-                            >
-                                Agent {sortConfig.key === 'agent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th
-                                className="border py-2 px-3 text-xs uppercase text-left cursor-pointer hover:bg-gray-100"
-                                onClick={() => handleSort('consultant')}
-                            >
-                                Consultant {sortConfig.key === 'consultant' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                            </th>
-                            <th className="border py-2 px-3 text-xs uppercase text-left">Status</th>
-                            {isAdmin && (
-                                <th className="border py-2 px-3 text-xs uppercase text-left">Created By</th>
-                            )}
-                            <th className="border py-2 px-3 text-xs uppercase text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading ? (
-                            <tr>
-                                <td colSpan={isAdmin ? 14 : 13} className="py-8 px-3 text-center border">
-                                    <div className="flex justify-center items-center">
-                                        <UILoader text='Loading data...' />
-                                    </div>
-                                </td>
-                            </tr>
-                        ) : Object.entries(groupedBookings).length > 0 ? (
-                            Object.entries(groupedBookings).map(([year, months]) => (
-                                <React.Fragment key={year}>
-                                    <tr>
-                                        <td colSpan={isAdmin ? 14 : 13} className="py-4 px-3 font-semibold bg-gray-50 uppercase border">
-                                            {year}
-                                        </td>
-                                    </tr>
-                                    {Object.entries(months).map(([month, monthBookings]) => {
-                                        const monthName = new Date(parseInt(year), parseInt(month))
-                                            .toLocaleString('default', { month: 'long' })
-                                            .toUpperCase();
-                                        return (
-                                            <React.Fragment key={`${year}-${month}`}>
-                                                <tr>
-                                                    <td colSpan={isAdmin ? 14 : 13} className="py-2 px-3 text-sm font-medium bg-gray-50/50 uppercase border">
-                                                        {monthName} ({monthBookings.length} bookings)
-                                                    </td>
-                                                </tr>
-                                                {monthBookings.map((booking: Booking) => (
-                                                    <tr key={booking.id} className="hover:bg-gray-50/50">
-                                                        <td className="border py-2 px-3 text-xs uppercase">{booking.name}</td>
-                                                        <td className="border py-2 px-3 text-xs uppercase">{formatDate(booking.date_from)}</td>
-                                                        <td className="border py-2 px-3 text-xs uppercase">{formatDate(booking.date_to)}</td>
-                                                        <td className="border py-2 px-3 text-xs uppercase">{booking.country}</td>
-                                                        <td className="border py-2 px-3 text-xs text-center">{booking.pax}</td>
-                                                        <td className="border py-2 px-3 text-xs text-center">{booking.ladies}</td>
-                                                        <td className="border py-2 px-3 text-xs text-center">{booking.men}</td>
-                                                        <td className="border py-2 px-3 text-xs text-center">{booking.children}</td>
-                                                        <td className="border py-2 px-3 text-xs text-center">{booking.teens}</td>
-                                                        <td className="border py-2 px-3 text-xs uppercase">{booking.agent}</td>
-                                                        <td className="border py-2 px-3 text-xs uppercase">{booking.consultant}</td>
-                                                        <td className="border py-2 px-3 text-xs">
-                                                            {getBookingStatus(booking.date_from, booking.date_to)}
-                                                        </td>
-                                                        {isAdmin && (
-                                                            <td className="border py-2 px-3 text-xs uppercase">{booking.created_by || '—'}</td>
-                                                        )}
-                                                        <td className="border py-2 px-3 text-xs text-center">
-                                                            <div className="flex justify-center space-x-2">
-                                                                {(isAdmin || booking.user_id === user?.id) && (
-                                                                    <button
-                                                                        onClick={() => openModal(booking)}
-                                                                        className="text-blue-600 hover:text-blue-800"
-                                                                    >
-                                                                        Edit
-                                                                    </button>
-                                                                )}
-                                                                {(isAdmin || booking.user_id === user?.id) && (
-                                                                    <button
-                                                                        onClick={() => setDeleteConfirmBooking(booking)}
-                                                                        className="text-red-600 hover:text-red-800"
-                                                                    >
-                                                                        Delete
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </React.Fragment>
-                                        )
-                                    })}
-                                </React.Fragment>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan={isAdmin ? 14 : 13} className="py-4 px-3 text-center border">
-                                    {filters.showOnlyMyBookings
-                                        ? 'No bookings found matching your filters.'
-                                        : 'No bookings found matching the filters.'}
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Summary Stats */}
-            {filteredBookings.length > 0 && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg text-xs">
-                    <div className="flex flex-wrap gap-4">
-                        <div>
-                            <span className="font-medium uppercase">Total Bookings:</span> {filteredBookings.length}
-                        </div>
-                        <div>
-                            <span className="font-medium uppercase">Total Pax:</span> {filteredBookings.reduce((sum, b) => sum + b.pax, 0)}
-                        </div>
-                        <div>
-                            <span className="font-medium uppercase">Upcoming:</span> {filteredBookings.filter(b => new Date(b.date_from) > new Date()).length}
-                        </div>
-                        <div>
-                            <span className="font-medium uppercase">Ongoing:</span> {filteredBookings.filter(b => {
-                                const today = new Date();
-                                return new Date(b.date_from) <= today && new Date(b.date_to) >= today;
-                            }).length}
-                        </div>
-                        <div>
-                            <span className="font-medium uppercase">Completed:</span> {filteredBookings.filter(b => new Date(b.date_to) < new Date()).length}
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Booking Form Dialog */}
+            <Dialog open={isModalOpen} onOpenChange={closeModal}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>{editingBooking ? 'Edit Booking' : 'Create New Booking'}</DialogTitle>
+                        <DialogDescription>
+                            {editingBooking ? 'Update the booking details below.' : 'Fill in the details to create a new booking.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <BookingForm
+                        booking={editingBooking}
+                        onSave={handleSaveBooking}
+                        onCancel={closeModal}
+                    />
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
 
-export default BookingsTable;
+export default BookingManagementApp;

@@ -9,14 +9,14 @@ const Flyer: React.FC = () => {
                 <h2 className="text-2xl font-semibold text-green-600">05 DAYS</h2>
             </header>
 
-            <section className="bg-white shadow-lg rounded-lg p-6 mb-8">
+            <section className="bg-white shadow-lg rounded-md p-6 mb-8">
                 <h3 className="text-xl font-bold text-green-700 border-b-2 border-green-200 pb-2 mb-4">Safari Description</h3>
                 <p className="text-gray-700 leading-relaxed">
                     {`Experience the best of Kenya's wildlife on a 5-day safari adventure in the world-renowned Masai Mara. Start your journey with a relaxing stay in Nairobi at the Radisson Blu Hotel and Residence, Nairobi Arboretum. Then, fly to the Masai Mara National Reserve, where you'll stay at the luxurious AndBeyond Kichwa Tembo Tented Camp. Spend your days exploring the vast savannahs, witnessing the spectacular wildlife, including the Big Five and the Great Migration. This short but unforgettable safari offers the perfect blend of luxury, adventure, and breathtaking natural beauty.`}
                 </p>
             </section>
 
-            <section className="bg-white shadow-lg rounded-lg p-6 mb-8">
+            <section className="bg-white shadow-lg rounded-md p-6 mb-8">
                 <h3 className="text-xl font-bold text-green-700 border-b-2 border-green-200 pb-2 mb-4">Itinerary Overview</h3>
                 <div className="space-y-4">
                     <div>
@@ -56,7 +56,7 @@ const Flyer: React.FC = () => {
                 </div>
             </section>
 
-            <section className="bg-white shadow-lg rounded-lg p-6 mb-8">
+            <section className="bg-white shadow-lg rounded-md p-6 mb-8">
                 <h3 className="text-xl font-bold text-green-700 border-b-2 border-green-200 pb-2 mb-4">Inclusions & Exclusions</h3>
                 <div className="grid md:grid-cols-2 gap-6">
                     <div>

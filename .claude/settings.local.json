@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "Bash(claude mcp add shadcn:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run lint)",
+      "Bash(npm install:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npm run dev:*)",
+      "Bash(rm:*)",
+      "Bash(npx npm-check-updates:*)",
+      "Bash(npm audit:*)",
+      "Bash(taskkill:*)",
+      "WebSearch"
+    ],
+    "deny": []
+  }
+}

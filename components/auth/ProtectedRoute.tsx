@@ -14,29 +14,37 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     children,
     requireAdmin = false
 }) => {
-    const { isAuthenticated, isAdmin, checkTokenExpiry } = useAuth();
+    const { isAuthenticated, isAdmin, isInitializing } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        // Check if token is valid
-        if (!isAuthenticated || !checkTokenExpiry()) {
-            router.push('/');
+        // Don't redirect during initialization
+        if (isInitializing) return;
+        
+        // Only redirect if we're sure the user is not authenticated
+        if (!isAuthenticated) {
+            router.replace('/');
             return;
         }
 
         // Check admin access if required
-        if (requireAdmin && !isAdmin) {
-            router.push('/');
+        if (isAuthenticated && requireAdmin && !isAdmin) {
+            router.replace('/');
         }
-    }, [isAuthenticated, isAdmin, requireAdmin, checkTokenExpiry, router]);
+    }, [isAuthenticated, isAdmin, isInitializing, requireAdmin, router]);
 
-    // Show loading while checking authentication
-    if (!isAuthenticated) {
+    // Show loading while initializing authentication
+    if (isInitializing) {
         return (
             <div className="flex justify-center items-center min-h-screen">
                 <UILoader text="Checking authentication..." />
             </div>
         );
+    }
+    
+    // If not authenticated, don't render children (redirect will happen in useEffect)
+    if (!isAuthenticated) {
+        return null;
     }
 
     // Check admin access

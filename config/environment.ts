@@ -34,9 +34,16 @@ class ConfigManager {
         let frontendUrl: string;
 
         if (isDevelopment) {
-            // Development environment
-            apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
-            frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
+            // Development environment - use proxy to avoid CORS issues
+            if (typeof window !== 'undefined') {
+                // Client-side: use the proxy route
+                apiBaseUrl = '/api';
+                frontendUrl = window.location.origin;
+            } else {
+                // Server-side: use direct API URL
+                apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
+                frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
+            }
         } else {
             // Production/Staging environment
             apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://bookingsendpoint.onrender.com';

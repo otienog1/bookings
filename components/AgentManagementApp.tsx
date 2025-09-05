@@ -1,17 +1,30 @@
 "use client"
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import React from 'react';
 import AgentForm from './AgentForm';
-import Modal from './Modal';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { AgentsDataTable } from './AgentsDataTable';
+import { QuickActions } from '@/components/ui/quick-actions';
 import * as XLSX from 'xlsx';
-import UILoader from './UILoader';
-import { api } from '@/utils/api'; // Add this import
+import { api } from '@/utils/api';
 
 import { useAuth } from './auth/AuthContext';
 import { Agent } from '@/types/AgentTypes';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Download, Upload } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 import { config } from '@/config/environment';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
@@ -23,7 +36,6 @@ interface ApiError {
 
 const AgentManagementApp: React.FC = () => {
     const [agents, setAgents] = useState<Agent[]>([]);
-    const [searchTerm, setSearchTerm] = useState<string>('');
     const [filteredAgents, setFilteredAgents] = useState<Agent[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
@@ -32,24 +44,14 @@ const AgentManagementApp: React.FC = () => {
     const [deleteConfirmAgent, setDeleteConfirmAgent] = useState<Agent | null>(null);
     const [showInactive, setShowInactive] = useState(false);
     const { token, isAuthenticated, isAdmin, user } = useAuth();
+    const router = useRouter();
 
 
-    // Apply filters based on search term
+    // Apply filters based on inactive filter
     const applyFilters = useCallback((agentList: Agent[]) => {
-        const filtered = agentList.filter(agent => {
-            const searchFields = [
-                agent.name,
-                agent.company,
-                agent.email,
-                agent.country,
-                agent.phone
-            ].map(field => field?.toLowerCase() || '');
+        setFilteredAgents(agentList);
+    }, []);
 
-            return searchFields.some(field => field.includes(searchTerm.toLowerCase()));
-        });
-
-        setFilteredAgents(filtered);
-    }, [searchTerm]);
 
     // Updated fetch agents with API utility
     const fetchAgents = useCallback(async () => {
@@ -85,7 +87,7 @@ const AgentManagementApp: React.FC = () => {
 
     useEffect(() => {
         applyFilters(agents);
-    }, [searchTerm, agents, applyFilters]);
+    }, [agents, applyFilters]);
 
     // Updated CRUD Operations with API utility
     const handleSaveAgent = async (agent: Agent) => {
@@ -93,7 +95,7 @@ const AgentManagementApp: React.FC = () => {
             setError('');
             const isEditing = !!agent.id;
             const endpoint = isEditing
-                ? API_ENDPOINTS.AGENTS.EDIT(agent.id)
+                ? API_ENDPOINTS.AGENTS.EDIT(String(agent.id))
                 : API_ENDPOINTS.AGENTS.CREATE;
 
             // Remove response variable since it's not being used
@@ -115,7 +117,7 @@ const AgentManagementApp: React.FC = () => {
     const handleDeleteAgent = async (agent: Agent) => {
         try {
             setError('');
-            await api.delete(API_ENDPOINTS.AGENTS.DELETE(agent.id), token);
+            await api.delete(API_ENDPOINTS.AGENTS.DELETE(String(agent.id)), token);
 
             setAgents(prev => prev.filter(a => a.id !== agent.id));
             setDeleteConfirmAgent(null);
@@ -196,180 +198,149 @@ const AgentManagementApp: React.FC = () => {
     };
 
     return (
-        <div className="px-4 mx-auto">
-            {error && (
-                <Alert className="mb-4 bg-red-50 border-red-200">
-                    <AlertTitle>Heads up!</AlertTitle>
-                    <AlertDescription className="text-red-800">{error}</AlertDescription>
-                </Alert>
-            )}
+        <>
+            <div className="flex flex-1 flex-col gap-2 p-2 pt-0 sm:gap-4 sm:p-4">
+                <div className="min-h-[calc(100vh-4rem)] flex-1 rounded-md p-3 sm:rounded-xl sm:p-4 md:p-6">
+                    <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
+                        {/* Page Title */}
+                        <div className="px-2 sm:px-0">
+                            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                                Agent Management
+                            </h1>
+                            <p className="text-muted-foreground text-sm sm:text-base">
+                                Manage your travel agents and their information.
+                            </p>
+                        </div>
 
-            <h1 className="text-2xl font-bold mb-6">Agent Management</h1>
+                        {/* Error Alert */}
+                        {error && (
+                            <Alert variant="destructive" className="mx-2 sm:mx-0">
+                                <AlertTitle>Error</AlertTitle>
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        )}
 
-            <div className="my-4 flex flex-col md:flex-row justify-between gap-2">
-                <div className="flex flex-col md:flex-row gap-2 items-center">
-                    <input
-                        type="text"
-                        placeholder="Search agents..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="border p-2 w-full md:w-64 text-xs rounded"
-                    />
-
-                    {isAdmin && (
-                        <label className="flex items-center space-x-2">
-                            <input
-                                type="checkbox"
-                                checked={showInactive}
-                                onChange={(e) => setShowInactive(e.target.checked)}
-                            />
-                            <span className="text-xs">Show Inactive Agents</span>
-                        </label>
-                    )}
-                </div>
-                <div className='flex space-x-2'>
-                    <button
-                        onClick={() => openModal()}
-                        className="flex items-center rounded px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white uppercase text-xs transition-colors"
-                    >
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        <span>New Agent</span>
-                    </button>
-                    <button
-                        onClick={exportToExcel}
-                        className="rounded px-3 py-1 bg-green-500 hover:bg-green-600 text-white uppercase text-xs transition-colors"
-                    >
-                        Export to Excel
-                    </button>
-                    {isAdmin && (
-                        <>
-                            <input
-                                type="file"
-                                accept=".csv"
-                                onChange={(e) => e.target.files && e.target.files[0] && importAgents(e.target.files[0])}
-                                className="sr-only"
-                                id="csvImport"
-                            />
-                            <label
-                                htmlFor="csvImport"
-                                className="rounded px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white uppercase text-xs transition-colors cursor-pointer"
-                            >
-                                Import CSV
-                            </label>
-                        </>
-                    )}
-                </div>
-            </div>
-
-            {/* Confirm Delete Modal */}
-            <Modal
-                isOpen={!!deleteConfirmAgent}
-                onClose={() => setDeleteConfirmAgent(null)}
-                backdropClick={true}
-            >
-                <div className="px-4 py-2">
-                    <h2 className="text-lg font-semibold mb-4">Confirm Delete</h2>
-                    <p className="mb-4 normal-case">Are you sure you want to delete the agent <u>{deleteConfirmAgent?.name}</u>?<br />This action is irreversible.</p>
-                    <div className="flex justify-end space-x-2">
-                        <button
-                            onClick={() => setDeleteConfirmAgent(null)}
-                            className="px-4 py-2 bg-gray-300 hover:bg-gray-400"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={() => deleteConfirmAgent && handleDeleteAgent(deleteConfirmAgent)}
-                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white"
-                        >
-                            Delete
-                        </button>
-                    </div>
-                </div>
-            </Modal>
-
-            {/* Agent Form Modal */}
-            <Modal isOpen={isModalOpen} onClose={closeModal} backdropClick={false}>
-                <AgentForm
-                    agent={editingAgent}
-                    onSave={handleSaveAgent}
-                    onCancel={closeModal}
-                />
-            </Modal>
-
-            {/* Agents Table */}
-            <div id="agents-table" className="bg-white overflow-hidden">
-                <table className="w-full border-collapse">
-                    <thead>
-                        <tr className="bg-gray-50">
-                            <th className="border py-2 px-3 text-xs uppercase text-left">Name</th>
-                            <th className="border py-2 px-3 text-xs uppercase text-left">Company</th>
-                            <th className="border py-2 px-3 text-xs uppercase text-left">Email</th>
-                            <th className="border py-2 px-3 text-xs uppercase text-left">Phone</th>
-                            <th className="border py-2 px-3 text-xs uppercase text-left">Country</th>
-                            <th className="border py-2 px-3 text-xs uppercase text-center">Status</th>
-
-                            {isAdmin && (
-                                <th className="border py-2 px-3 text-xs uppercase text-center">Actions</th>
-                            )}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading ? (
-                            <tr>
-                                <td colSpan={7} className="py-8 px-3 text-center border">
-                                    <div className="flex justify-center items-center">
-                                        <UILoader text='Loading data...' />
-                                    </div>
-                                </td>
-                            </tr>
-                        ) : filteredAgents.length > 0 ? (
-                            filteredAgents.map((agent) => (
-                                <tr key={agent.id} className="hover:bg-gray-50/50">
-                                    <td className="border py-2 px-3 text-xs uppercase">{agent.name}</td>
-                                    <td className="border py-2 px-3 text-xs uppercase">{agent.company || '—'}</td>
-                                    <td className="border py-2 px-3 text-xs">{agent.email}</td>
-                                    <td className="border py-2 px-3 text-xs">{agent.phone || '—'}</td>
-                                    <td className="border py-2 px-3 text-xs uppercase">{agent.country}</td>
-                                    <td className="border py-2 px-3 text-xs text-center">
-                                        <span className={`px-2 py-1 rounded text-xs ${agent.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                                            {agent.is_active ? 'Active' : 'Inactive'}
-                                        </span>
-                                    </td>
-                                    {isAdmin && (
-                                        <td className="border py-2 px-3 text-xs text-center">
-                                            <div className="flex justify-center space-x-2">
-                                                {(isAdmin || agent.user_id === user?.id) && (
-                                                    <button
-                                                        onClick={() => openModal(agent)}
-                                                        className="text-blue-600 hover:text-blue-800"
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                )}
-                                                {(isAdmin || agent.user_id === user?.id) && (
-                                                    <button
-                                                        onClick={() => setDeleteConfirmAgent(agent)}
-                                                        className="text-red-600 hover:text-red-800"
-                                                    >
-                                                        Delete
-                                                    </button>
+                        {/* Main Content Grid */}
+                        <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-3">
+                            {/* Main Content Section */}
+                            <div className="space-y-4 sm:space-y-6 xl:col-span-2">
+                                {/* Agents Overview Card */}
+                                <Card>
+                                    <CardHeader className="pb-3">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <CardTitle className="text-lg font-semibold">Agents Overview</CardTitle>
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    Showing {filteredAgents.length} of {agents.length} agents
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {isAdmin && (
+                                                    <div className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id="show-inactive"
+                                                            checked={showInactive}
+                                                            onCheckedChange={(checked) => setShowInactive(checked as boolean)}
+                                                        />
+                                                        <Label htmlFor="show-inactive" className="text-sm font-medium">
+                                                            Show Inactive
+                                                        </Label>
+                                                    </div>
                                                 )}
                                             </div>
-                                        </td>
-                                    )}
-                                </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan={7} className="py-4 px-3 text-center border">
-                                    No agents found.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                                        </div>
+                                    </CardHeader>
+
+                                    {/* Data Table */}
+                                    <CardContent className="px-4">
+                                        {loading ? (
+                                            <div className="flex justify-center items-center py-12">
+                                                <div className="text-center">
+                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                                                    <p className="text-muted-foreground">Loading agents...</p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <AgentsDataTable
+                                                agents={filteredAgents}
+                                                onEdit={openModal}
+                                                onDelete={setDeleteConfirmAgent}
+                                                isAdmin={isAdmin}
+                                                currentUserId={user?.id}
+                                            />
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Sidebar Section */}
+                            <div className="space-y-4 sm:space-y-6">
+                                <QuickActions
+                                    onAddAgent={() => router.push('/agents/new')}
+                                    onExport={exportToExcel}
+                                    className=""
+                                />
+
+                                {/* Hidden file input for CSV import */}
+                                {isAdmin && (
+                                    <input
+                                        type="file"
+                                        accept=".csv"
+                                        onChange={(e) => e.target.files && e.target.files[0] && importAgents(e.target.files[0])}
+                                        className="sr-only"
+                                        id="csvImport"
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+
+            {/* Confirm Delete Dialog */}
+            <Dialog open={!!deleteConfirmAgent} onOpenChange={() => setDeleteConfirmAgent(null)}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Confirm Delete</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete the agent <strong>{deleteConfirmAgent?.name}</strong>?
+                            This action is irreversible.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setDeleteConfirmAgent(null)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => deleteConfirmAgent && handleDeleteAgent(deleteConfirmAgent)}
+                        >
+                            Delete Agent
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Agent Form Dialog */}
+            <Dialog open={isModalOpen} onOpenChange={closeModal}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>{editingAgent ? 'Edit Agent' : 'Create New Agent'}</DialogTitle>
+                        <DialogDescription>
+                            {editingAgent ? 'Update agent information below.' : 'Fill in the details to create a new agent.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <AgentForm
+                        agent={editingAgent}
+                        onSave={handleSaveAgent}
+                        onCancel={closeModal}
+                    />
+                </DialogContent>
+            </Dialog>
+        </>
     );
 };
 

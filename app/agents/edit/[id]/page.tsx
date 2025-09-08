@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import AgentForm from '@/components/AgentForm';
@@ -46,10 +45,10 @@ export default function EditAgentPage() {
     try {
       await api.put(API_ENDPOINTS.AGENTS.EDIT(agentId), agentData, token);
       console.log('Agent updated:', agentData);
-      
+
       // Trigger dashboard refresh
       refreshDashboard();
-      
+
       // Redirect to agents list after successful update
       router.push('/agents');
     } catch (err) {

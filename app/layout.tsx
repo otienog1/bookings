@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { AuthProvider } from "@/components/auth/AuthContext"
+import { RefreshProvider } from "@/contexts/RefreshContext"
 
 
 export const metadata: Metadata = {
@@ -21,14 +22,16 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <AuthProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            {children}
-          </ThemeProvider>
+          <RefreshProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              {children}
+            </ThemeProvider>
+          </RefreshProvider>
         </AuthProvider>
       </body>
     </html>

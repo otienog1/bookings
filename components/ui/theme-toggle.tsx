@@ -33,14 +33,14 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       className="flex w-full items-center justify-between overflow-hidden rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-sm"
     >
+      {isDark ? (
+        <Sun className="h-4 w-4 shrink-0" />
+      ) : (
+        <Moon className="h-4 w-4 shrink-0" />
+      )}
       <span className="truncate">
         {isDark ? 'Light Mode' : 'Dark Mode'}
       </span>
-      {isDark ? (
-        <Moon className="h-4 w-4 shrink-0" />
-      ) : (
-        <Sun className="h-4 w-4 shrink-0" />
-      )}
     </button>
   )
 }

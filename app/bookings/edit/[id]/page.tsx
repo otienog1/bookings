@@ -9,6 +9,7 @@ import Link from 'next/link';
 import BookingForm from '@/components/BookingForm';
 import UILoader from '@/components/UILoader';
 import { useAuth } from '@/components/auth/AuthContext';
+import { useRefresh } from '@/contexts/RefreshContext';
 import { api } from '@/utils/api';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
 
@@ -17,6 +18,7 @@ export default function EditBookingPage() {
   const router = useRouter();
   const bookingId = params.id as string;
   const { token } = useAuth();
+  const { refreshDashboard } = useRefresh();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +46,10 @@ export default function EditBookingPage() {
     try {
       await api.put(API_ENDPOINTS.BOOKINGS.EDIT(bookingId), bookingData, token);
       console.log('Booking updated:', bookingData);
+      
+      // Trigger dashboard refresh
+      refreshDashboard();
+      
       // Redirect to bookings list after successful update
       router.push('/bookings');
     } catch (err) {

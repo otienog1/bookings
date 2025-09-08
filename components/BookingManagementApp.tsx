@@ -30,6 +30,7 @@ import { QuickActions } from '@/components/ui/quick-actions';
 import * as XLSX from 'xlsx';
 import { api } from '@/utils/api';
 import { useAuth } from './auth/AuthContext';
+import { useRefresh } from '@/contexts/RefreshContext';
 import { Booking, BookingsResponse } from '@/types/BookingTypes';
 import { Agent } from '@/types/AgentTypes';
 import { ChevronDown, ChevronUp, Filter, X, Download, Upload, Plus, Users, Calendar, TrendingUp, FileText, Activity } from 'lucide-react';
@@ -84,6 +85,7 @@ const BookingManagementApp: React.FC = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const { token, isAuthenticated, isAdmin, user } = useAuth();
+    const { refreshDashboard } = useRefresh();
 
     // Initialize filters
     const [filters, setFilters] = useState<Filters>({
@@ -314,7 +316,7 @@ const BookingManagementApp: React.FC = () => {
             consultant: 'all',
             minPax: '',
             maxPax: '',
-            showOnlyMyBookings: true
+            showOnlyMyBookings: false
         });
     };
 
@@ -358,6 +360,7 @@ const BookingManagementApp: React.FC = () => {
             }
 
             await fetchBookings();
+            refreshDashboard();
             closeModal();
         } catch (error) {
             if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
@@ -372,6 +375,7 @@ const BookingManagementApp: React.FC = () => {
             await api.delete(API_ENDPOINTS.BOOKINGS.DELETE(String(booking.id)), token);
 
             setBookings(prev => prev.filter(b => b.id !== booking.id));
+            refreshDashboard();
             setDeleteConfirmBooking(null);
         } catch (error) {
             if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
@@ -465,6 +469,7 @@ const BookingManagementApp: React.FC = () => {
             }
 
             fetchBookings();
+            refreshDashboard();
         } catch (error) {
             if (typeof error === 'object' && error !== null && 'message' in error) {
                 setError((error as ApiError).message || 'Failed to import bookings');

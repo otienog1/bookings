@@ -9,6 +9,7 @@ import Link from 'next/link';
 import AgentForm from '@/components/AgentForm';
 import UILoader from '@/components/UILoader';
 import { useAuth } from '@/components/auth/AuthContext';
+import { useRefresh } from '@/contexts/RefreshContext';
 import { api } from '@/utils/api';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
 
@@ -17,6 +18,7 @@ export default function EditAgentPage() {
   const router = useRouter();
   const agentId = params.id as string;
   const { token } = useAuth();
+  const { refreshDashboard } = useRefresh();
   const [agent, setAgent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +46,10 @@ export default function EditAgentPage() {
     try {
       await api.put(API_ENDPOINTS.AGENTS.EDIT(agentId), agentData, token);
       console.log('Agent updated:', agentData);
+      
+      // Trigger dashboard refresh
+      refreshDashboard();
+      
       // Redirect to agents list after successful update
       router.push('/agents');
     } catch (err) {

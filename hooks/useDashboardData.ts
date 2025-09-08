@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { dashboardApiUrl } from '@/config/apiEndpoints';
 import { config } from '@/config/environment';
+import { useAuth } from '@/components/auth/AuthContext';
 
 interface DashboardStats {
   totalBookings: {
@@ -64,20 +65,60 @@ interface RecentUser {
   avatar?: string;
 }
 
+interface DailyTrendData {
+  day: string;
+  pax: number;
+  bookings: number;
+  date: string;
+}
+
+interface OngoingBooking {
+  id: string;
+  name: string;
+  date_from: string;
+  date_to: string;
+  country: string;
+  pax: number;
+  agent_name: string;
+  agent_country: string;
+}
+
+interface UpcomingBooking {
+  id: string;
+  name: string;
+  date_from: string;
+  date_to: string;
+  country: string;
+  pax: number;
+  agent_name: string;
+  agent_country: string;
+  created_by: string;
+  status: 'upcoming' | 'confirmed';
+  daysUntilStart: number;
+  duration: number;
+}
+
 interface DashboardData {
   stats: DashboardStats | null;
   bookingTrends: BookingTrendData[] | null;
+  dailyTrends: DailyTrendData[] | null;
   recentUsers: RecentUser[] | null;
+  ongoingBookings: OngoingBooking[] | null;
+  upcomingBookings: UpcomingBooking[] | null;
   loading: boolean;
   error: string | null;
 }
 
-export function useDashboardData(): DashboardData {
+export function useDashboardData(refreshTrigger?: number): DashboardData {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [bookingTrends, setBookingTrends] = useState<BookingTrendData[] | null>(null);
+  const [dailyTrends, setDailyTrends] = useState<DailyTrendData[] | null>(null);
   const [recentUsers, setRecentUsers] = useState<RecentUser[] | null>(null);
+  const [ongoingBookings, setOngoingBookings] = useState<OngoingBooking[] | null>(null);
+  const [upcomingBookings, setUpcomingBookings] = useState<UpcomingBooking[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { token } = useAuth();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -85,11 +126,17 @@ export function useDashboardData(): DashboardData {
         setLoading(true);
         setError(null);
 
+        // Skip fetching if no token available
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
         // Try to use existing booking data to generate dashboard stats
         const [bookingsResponse] = await Promise.allSettled([
           fetch(`${config.getApiUrl('/booking/fetch')}`, {
             headers: {
-              'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
           }),
@@ -229,6 +276,169 @@ export function useDashboardData(): DashboardData {
           
           const trendsArray = Object.values(monthlyTrends).sort((a: any, b: any) => a.date.localeCompare(b.date));
           setBookingTrends(trendsArray);
+
+          // Generate daily trends data from real bookings for last 28 days
+          const dailyTrends = bookingsArray.reduce((acc: any, booking: any) => {
+            try {
+              // Handle different date formats from backend
+              let bookingDate: Date;
+              if (booking.date_from && typeof booking.date_from === 'object' && booking.date_from.$date) {
+                bookingDate = new Date(booking.date_from.$date);
+              } else if (booking.date_from) {
+                bookingDate = new Date(booking.date_from);
+              } else {
+                return acc; // Skip if no valid date
+              }
+              
+              // Check if date is valid and within last 28 days
+              if (isNaN(bookingDate.getTime())) {
+                return acc;
+              }
+              
+              const now = new Date();
+              const twentyEightDaysAgo = new Date();
+              twentyEightDaysAgo.setDate(now.getDate() - 28);
+              
+              if (bookingDate >= twentyEightDaysAgo && bookingDate <= now) {
+                const dayKey = bookingDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+                const dayName = bookingDate.toLocaleDateString('en', { weekday: 'short', day: 'numeric' });
+                
+                if (!acc[dayKey]) {
+                  acc[dayKey] = { day: dayName, pax: 0, bookings: 0, date: dayKey };
+                }
+                
+                acc[dayKey].pax += booking.pax || 0;
+                acc[dayKey].bookings += 1;
+              }
+              
+              return acc;
+            } catch (error) {
+              console.warn('Error processing booking date for daily trends:', booking.date_from, error);
+              return acc;
+            }
+          }, {});
+          
+          // Fill in missing days with zero values
+          const dailyTrendsArray: DailyTrendData[] = [];
+          const now = new Date();
+          for (let i = 27; i >= 0; i--) {
+            const date = new Date(now);
+            date.setDate(date.getDate() - i);
+            const dayKey = date.toISOString().split('T')[0];
+            const dayName = date.toLocaleDateString('en', { weekday: 'short', day: 'numeric' });
+            
+            dailyTrendsArray.push(
+              dailyTrends[dayKey] || { day: dayName, pax: 0, bookings: 0, date: dayKey }
+            );
+          }
+          
+          setDailyTrends(dailyTrendsArray);
+
+          // Calculate ongoing bookings (started but not finished)
+          const currentTime = new Date();
+          const ongoing = bookingsArray.filter((booking: any) => {
+            try {
+              let startDate: Date, endDate: Date;
+              
+              if (booking.date_from && typeof booking.date_from === 'object' && booking.date_from.$date) {
+                startDate = new Date(booking.date_from.$date);
+              } else if (booking.date_from) {
+                startDate = new Date(booking.date_from);
+              } else {
+                return false;
+              }
+
+              if (booking.date_to && typeof booking.date_to === 'object' && booking.date_to.$date) {
+                endDate = new Date(booking.date_to.$date);
+              } else if (booking.date_to) {
+                endDate = new Date(booking.date_to);
+              } else {
+                return false;
+              }
+
+              if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                return false;
+              }
+
+              return startDate <= currentTime && endDate >= currentTime;
+            } catch {
+              return false;
+            }
+          });
+
+          const mappedOngoingBookings: OngoingBooking[] = ongoing.map((booking: any) => ({
+            id: booking.id || booking._id?.$oid || booking._id,
+            name: booking.name,
+            date_from: booking.date_from,
+            date_to: booking.date_to,
+            country: booking.country,
+            pax: booking.pax || 0,
+            agent_name: booking.agent_name || 'Unknown Agent',
+            agent_country: booking.agent_country || 'Unknown'
+          }));
+
+          setOngoingBookings(mappedOngoingBookings);
+
+          // Calculate upcoming bookings (start date is in the future)
+          const upcoming = bookingsArray.filter((booking: any) => {
+            try {
+              let startDate: Date;
+              
+              if (booking.date_from && typeof booking.date_from === 'object' && booking.date_from.$date) {
+                startDate = new Date(booking.date_from.$date);
+              } else if (booking.date_from) {
+                startDate = new Date(booking.date_from);
+              } else {
+                return false;
+              }
+
+              return !isNaN(startDate.getTime()) && startDate > currentTime;
+            } catch {
+              return false;
+            }
+          });
+
+          const mappedUpcomingBookings: UpcomingBooking[] = upcoming.map((booking: any) => {
+            let startDate: Date, endDate: Date;
+            
+            if (booking.date_from && typeof booking.date_from === 'object' && booking.date_from.$date) {
+              startDate = new Date(booking.date_from.$date);
+            } else {
+              startDate = new Date(booking.date_from);
+            }
+
+            if (booking.date_to && typeof booking.date_to === 'object' && booking.date_to.$date) {
+              endDate = new Date(booking.date_to.$date);
+            } else {
+              endDate = new Date(booking.date_to);
+            }
+
+            const diffTime = startDate.getTime() - currentTime.getTime();
+            const daysUntilStart = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            const durationTime = endDate.getTime() - startDate.getTime();
+            const duration = Math.ceil(durationTime / (1000 * 60 * 60 * 24));
+
+            const status: 'upcoming' | 'confirmed' = daysUntilStart > 30 ? 'confirmed' : 'upcoming';
+
+            return {
+              id: booking.id || booking._id?.$oid || booking._id,
+              name: booking.name,
+              date_from: booking.date_from,
+              date_to: booking.date_to,
+              country: booking.country,
+              pax: booking.pax || 0,
+              agent_name: booking.agent_name || 'Unknown Agent',
+              agent_country: booking.agent_country || 'Unknown',
+              created_by: booking.created_by || 'Unknown User',
+              status,
+              daysUntilStart,
+              duration
+            };
+          });
+
+          mappedUpcomingBookings.sort((a, b) => a.daysUntilStart - b.daysUntilStart);
+          setUpcomingBookings(mappedUpcomingBookings);
         } else {
           console.warn('❌ Failed to fetch bookings data from backend');
           console.warn('Bookings API URL:', `${config.getApiUrl('/booking/fetch')}`);
@@ -303,6 +513,9 @@ export function useDashboardData(): DashboardData {
           });
           
           setBookingTrends(sampleData);
+          
+          // Set empty daily trends for fallback
+          setDailyTrends([]);
 
           setRecentUsers([
             {
@@ -341,12 +554,15 @@ export function useDashboardData(): DashboardData {
     };
 
     fetchDashboardData();
-  }, []);
+  }, [refreshTrigger, token]);
 
   return {
     stats,
     bookingTrends,
+    dailyTrends,
     recentUsers,
+    ongoingBookings,
+    upcomingBookings,
     loading,
     error,
   };

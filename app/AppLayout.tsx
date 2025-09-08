@@ -16,7 +16,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const pathname = usePathname();
   
-  const [searchQuery, setSearchQuery] = React.useState('');
 
   const getPageInfo = () => {
     // Handle booking routes
@@ -108,6 +107,15 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             { label: 'Flyer Generator' }
           ]
         }
+      case '/settings':
+        return {
+          title: 'Settings',
+          description: 'Manage your account and application preferences',
+          breadcrumbs: [
+            { label: 'Home', href: '/dashboard' },
+            { label: 'Settings' }
+          ]
+        }
       case '/shadcn-demo':
         return {
           title: 'Component Demo',
@@ -154,10 +162,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             title={pageInfo.title}
             description={pageInfo.description}
             breadcrumbs={pageInfo.breadcrumbs}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
+            searchQuery=""
+            onSearchChange={() => {}}
             onRefresh={() => window.location.reload()}
-            searchPlaceholder="Search bookings, agents..."
+            searchPlaceholder=""
           />
           <div className="flex-1 overflow-auto">
             <div className="flex flex-1 flex-col gap-2 p-2 pt-2 sm:gap-4 sm:p-4">

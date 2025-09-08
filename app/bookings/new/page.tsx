@@ -1,21 +1,45 @@
 "use client"
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import BookingForm from '@/components/BookingForm';
+import { api } from '@/utils/api';
+import { API_ENDPOINTS } from '@/config/apiEndpoints';
+import { useAuth } from '@/components/auth/AuthContext';
+import { useRefresh } from '@/contexts/RefreshContext';
 
 export default function NewBookingPage() {
   const router = useRouter();
+  const { token } = useAuth();
+  const { refreshDashboard } = useRefresh();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleBookingSubmit = (bookingData: any) => {
-    console.log('New booking data:', bookingData);
-    // Handle booking creation here
-    // Redirect to bookings list after successful creation
-    router.push('/bookings');
+  const handleBookingSubmit = async (bookingData: any) => {
+    if (isSubmitting) return;
+    
+    try {
+      setIsSubmitting(true);
+      console.log('Creating new booking:', bookingData);
+      
+      const response = await api.post(API_ENDPOINTS.BOOKINGS.CREATE, bookingData, token);
+      console.log('Booking created successfully:', response);
+      
+      // Trigger dashboard refresh
+      refreshDashboard();
+      
+      // Redirect to bookings list after successful creation
+      router.push('/bookings');
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      // TODO: Show error message to user
+      alert('Failed to create booking. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {

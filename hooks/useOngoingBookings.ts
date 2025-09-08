@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { config } from '@/config/environment';
+import { useAuth } from '@/components/auth/AuthContext';
 
 interface OngoingBooking {
   id: string;
@@ -24,16 +25,22 @@ export function useOngoingBookings(): UseOngoingBookingsReturn {
   const [ongoingBookings, setOngoingBookings] = useState<OngoingBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { token } = useAuth();
 
   useEffect(() => {
     const fetchOngoingBookings = async () => {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
 
         const response = await fetch(`${config.getApiUrl('/booking/fetch')}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         });
@@ -111,7 +118,7 @@ export function useOngoingBookings(): UseOngoingBookingsReturn {
     };
 
     fetchOngoingBookings();
-  }, []);
+  }, [token]);
 
   return {
     ongoingBookings,

@@ -27,9 +27,10 @@ interface DailyTrendData {
 
 interface BookingTrendsChartProps {
   data?: BookingTrendData[] | null;
+  dailyData?: DailyTrendData[] | null;
 }
 
-export function BookingTrendsChart({ data }: BookingTrendsChartProps) {
+export function BookingTrendsChart({ data, dailyData }: BookingTrendsChartProps) {
   const [selectedPeriod, setSelectedPeriod] = useState('Last 28 Days');
   const [hoveredPoint, setHoveredPoint] = useState<{ index: number; x: number; y: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -37,65 +38,74 @@ export function BookingTrendsChart({ data }: BookingTrendsChartProps) {
   // Use provided data or fallback to empty array
   const allTrendsData = data || [];
   
-  // Generate daily data for last 28 days
-  const generateDailyData = (): DailyTrendData[] => {
-    const dailyData: DailyTrendData[] = [];
-    const now = new Date();
-    
-    for (let i = 27; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      
-      // Generate sample data for each day (you can replace this with real data fetching)
-      const baseValue = 8 + Math.floor(Math.random() * 15); // 8-23 passengers per day
-      const pax = Math.max(0, baseValue + Math.floor(Math.random() * 10) - 5); // Some variation
-      const bookings = Math.floor(pax / 3) + Math.floor(Math.random() * 2); // Rough booking estimate
-      
-      dailyData.push({
-        day: date.toLocaleDateString('en', { weekday: 'short', day: 'numeric' }),
-        pax,
-        bookings,
-        date: date.toISOString().split('T')[0] // YYYY-MM-DD format
-      });
-    }
-    
-    return dailyData;
+  // Get daily data from props (real database data)
+  const getDailyData = (): DailyTrendData[] => {
+    return dailyData || [];
   };
 
   // Filter data based on selected period
   const trendsData = useMemo(() => {
-    if (!allTrendsData || allTrendsData.length === 0) {
-      return [];
-    }
-    
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
     
     switch (selectedPeriod) {
       case 'Last 28 Days':
-        return generateDailyData();
+        return getDailyData();
       case 'Last 3 Months':
-        const threeMonthsAgo = new Date(currentYear, currentMonth - 2, 1);
-        return allTrendsData.filter(item => {
-          try {
-            const itemDate = new Date(item.date + '-01');
-            return itemDate >= threeMonthsAgo;
-          } catch {
-            return false;
-          }
-        });
+        // Generate last 3 months including current month
+        const threeMonthsResult: BookingTrendData[] = [];
+        
+        // Generate months from oldest to newest, including current month
+        for (let i = 2; i >= 0; i--) {
+          const targetDate = new Date(currentYear, currentMonth, 1);
+          targetDate.setMonth(targetDate.getMonth() - i);
+          
+          const targetYear = targetDate.getFullYear();
+          const targetMonth = targetDate.getMonth();
+          
+          const dateKey = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`;
+          const monthName = targetDate.toLocaleDateString('en', { month: 'short' });
+          
+          const existingData = allTrendsData?.find(item => item.date === dateKey);
+          
+          threeMonthsResult.push(existingData || {
+            month: monthName,
+            pax: 0,
+            bookings: 0,
+            date: dateKey
+          });
+        }
+        
+        return threeMonthsResult;
       case 'Last 6 Months':
-        const sixMonthsAgo = new Date(currentYear, currentMonth - 5, 1);
-        return allTrendsData.filter(item => {
-          try {
-            const itemDate = new Date(item.date + '-01');
-            return itemDate >= sixMonthsAgo;
-          } catch {
-            return false;
-          }
-        });
+        // Generate last 6 months including current month
+        const sixMonthsResult: BookingTrendData[] = [];
+        
+        // Generate months from oldest to newest, including current month
+        for (let i = 5; i >= 0; i--) {
+          const targetDate = new Date(currentYear, currentMonth, 1);
+          targetDate.setMonth(targetDate.getMonth() - i);
+          
+          const targetYear = targetDate.getFullYear();
+          const targetMonth = targetDate.getMonth();
+          
+          const dateKey = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`;
+          const monthName = targetDate.toLocaleDateString('en', { month: 'short' });
+          
+          const existingData = allTrendsData?.find(item => item.date === dateKey);
+          
+          sixMonthsResult.push(existingData || {
+            month: monthName,
+            pax: 0,
+            bookings: 0,
+            date: dateKey
+          });
+        }
+        
+        return sixMonthsResult;
       case 'Last 365 Days':
+        if (!allTrendsData || allTrendsData.length === 0) return [];
         const threeHundredSixtyFiveDaysAgo = new Date();
         threeHundredSixtyFiveDaysAgo.setDate(threeHundredSixtyFiveDaysAgo.getDate() - 365);
         return allTrendsData.filter(item => {
@@ -107,9 +117,9 @@ export function BookingTrendsChart({ data }: BookingTrendsChartProps) {
           }
         });
       default:
-        return allTrendsData;
+        return allTrendsData || [];
     }
-  }, [allTrendsData, selectedPeriod]);
+  }, [allTrendsData, dailyData, selectedPeriod]);
   
   // Handle empty data case
   if (trendsData.length === 0) {
@@ -138,8 +148,12 @@ export function BookingTrendsChart({ data }: BookingTrendsChartProps) {
     );
   }
 
-  const maxValue = trendsData.length > 0 ? Math.max(...trendsData.map(d => d.pax)) : 0;
-  const minValue = trendsData.length > 0 ? Math.min(...trendsData.map(d => d.pax)) : 0;
+  const rawMaxValue = trendsData.length > 0 ? Math.max(...trendsData.map(d => d.pax)) : 0;
+  const rawMinValue = trendsData.length > 0 ? Math.min(...trendsData.map(d => d.pax)) : 0;
+  
+  // Handle case where all values are the same (including zero)
+  const maxValue = rawMaxValue === rawMinValue ? Math.max(rawMaxValue, 10) : rawMaxValue;
+  const minValue = rawMaxValue === rawMinValue ? 0 : rawMinValue;
   const chartHeight = 320; // Increased from 200
   const chartWidth = 800; // Increased from 600
   const padding = 50; // Increased from 40
@@ -323,7 +337,8 @@ export function BookingTrendsChart({ data }: BookingTrendsChartProps) {
               const showGridLine = isDaily ? index % 7 === 0 : index % 3 === 0; // Weekly grid for daily view, every 3 months for monthly
               
               if (showGridLine) {
-                const x = padding + (index / (trendsData.length - 1)) * (chartWidth - 2 * padding);
+                const divisor = Math.max(trendsData.length - 1, 1); // Prevent division by zero
+                const x = padding + (index / divisor) * (chartWidth - 2 * padding);
                 return (
                   <line
                     key={index}
@@ -361,7 +376,8 @@ export function BookingTrendsChart({ data }: BookingTrendsChartProps) {
             
             {/* X-axis labels */}
             {trendsData.map((data, index) => {
-              const x = padding + (index / (trendsData.length - 1)) * (chartWidth - 2 * padding);
+              const divisor = Math.max(trendsData.length - 1, 1); // Prevent division by zero
+              const x = padding + (index / divisor) * (chartWidth - 2 * padding);
               const isDaily = selectedPeriod === 'Last 28 Days';
               const showLabel = isDaily ? (index % 4 === 0 || index === trendsData.length - 1) : true; // Show every 4th day for daily view
               

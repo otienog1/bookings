@@ -1,20 +1,44 @@
 "use client"
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import AgentForm from '@/components/AgentForm';
+import { api } from '@/utils/api';
+import { API_ENDPOINTS } from '@/config/apiEndpoints';
+import { useAuth } from '@/components/auth/AuthContext';
+import { useRefresh } from '@/contexts/RefreshContext';
 
 export default function NewAgentPage() {
   const router = useRouter();
+  const { token } = useAuth();
+  const { refreshDashboard } = useRefresh();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleAgentSubmit = (agentData: any) => {
-    console.log('New agent data:', agentData);
-    // Handle agent creation here
-    // Redirect to agents list after successful creation
-    router.push('/agents');
+  const handleAgentSubmit = async (agentData: any) => {
+    if (isSubmitting) return;
+    
+    try {
+      setIsSubmitting(true);
+      console.log('Creating new agent:', agentData);
+      
+      const response = await api.post(API_ENDPOINTS.AGENTS.CREATE, agentData, token);
+      console.log('Agent created successfully:', response);
+      
+      // Trigger dashboard refresh 
+      refreshDashboard();
+      
+      // Redirect to agents list after successful creation
+      router.push('/agents');
+    } catch (error) {
+      console.error('Error creating agent:', error);
+      // TODO: Show error message to user
+      alert('Failed to create agent. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {

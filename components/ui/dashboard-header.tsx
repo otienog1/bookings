@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, RefreshCw, Download, Plus, User, LogOut } from 'lucide-react';
+import { Search, RefreshCw, Download, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -13,17 +13,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { useAuth } from '@/components/auth/AuthContext';
+import { ThemeToggleIcon } from '@/components/ui/theme-toggle-icon';
 
 interface DashboardHeaderProps {
   title?: string;
@@ -55,11 +47,6 @@ export function DashboardHeader({
   addButtonText = "Add New",
   searchPlaceholder = "Search..."
 }: DashboardHeaderProps) {
-  const { user, logout } = useAuth();
-
-  const handleSignOut = () => {
-    logout();
-  };
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -97,15 +84,6 @@ export function DashboardHeader({
       </div>
 
       <div className="ml-auto flex items-center gap-2 px-4">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={searchPlaceholder}
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-[200px] pl-8 md:w-[300px]"
-          />
-        </div>
         
         <Button
           variant="outline"
@@ -132,32 +110,8 @@ export function DashboardHeader({
           </Button>
         )}
 
-        {/* User Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <User className="h-4 w-4" />
-              <span className="sr-only">Open user menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  {user?.username || 'User'}
-                </p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  {user?.email || 'user@example.com'}
-                </p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600">
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Sign out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ThemeToggleIcon />
+
       </div>
     </header>
   );

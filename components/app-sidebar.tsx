@@ -2,9 +2,8 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Calendar, Users, Building2, FileText, BarChart3, Activity } from "lucide-react"
+import { Calendar, Users, Building2, FileText, BarChart3, Activity, LogOut, ChevronUp, Settings } from "lucide-react"
 import { useAuth } from "@/components/auth/AuthContext"
-import { ThemeToggle } from "@/components/ui/theme-toggle"
 
 import {
   Sidebar,
@@ -22,6 +21,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const data = {
   navMain: [
@@ -56,7 +63,11 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, logout } = useAuth()
+
+  const handleSignOut = () => {
+    logout();
+  };
 
   return (
     <Sidebar {...props}>
@@ -113,26 +124,51 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
 
       </SidebarContent>
-      <div className="p-4">
-        <ThemeToggle />
-      </div>
       <SidebarFooter className="border-t p-4 space-y-4">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src="" />
-            <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-              {user?.username?.substring(0, 2).toUpperCase() || "UN"}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col min-w-0">
-            <span className="text-sm font-medium truncate">
-              {user?.first_name || user?.username || "User"}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {isAdmin ? "Administrator" : "User"}
-            </span>
-          </div>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <div className="flex items-center gap-3 cursor-pointer hover:bg-accent hover:text-accent-foreground p-2 transition-colors" style={{borderRadius: 'clamp(0px, calc(100vw / 120 + 1rem), 16px)'}}>
+              <Avatar className="h-8 w-8">
+                <AvatarImage src="" />
+                <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                  {user?.username?.substring(0, 2).toUpperCase() || "UN"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-sm font-medium truncate">
+                  {user?.first_name || user?.username || "User"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {isAdmin ? "Administrator" : "User"}
+                </span>
+              </div>
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">
+                  {user?.first_name || user?.username || "User"}
+                </p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {user?.email || 'user@example.com'}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/settings" className="flex items-center">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600">
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Sign out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

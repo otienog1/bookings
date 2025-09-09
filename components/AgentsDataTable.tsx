@@ -2,10 +2,9 @@
 
 import * as React from "react"
 import { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, MoreHorizontal, Eye, Edit, Trash2, UserCheck, UserX, Building2, Mail, Phone, MapPin } from "lucide-react"
+import { ArrowUpDown, MoreHorizontal, Eye, Edit, Trash2, UserCheck, Mail, MapPin } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +35,7 @@ export function AgentsDataTable({
   currentUserId
 }: AgentsDataTableProps) {
   const router = useRouter()
-  
+
   const columns: ColumnDef<Agent>[] = [
     {
       accessorKey: "name",
@@ -141,7 +140,7 @@ export function AgentsDataTable({
                 </DropdownMenuItem>
               )}
               {canDelete && (
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={() => onDelete(agent)}
                   className="text-red-600"
                 >
@@ -157,9 +156,9 @@ export function AgentsDataTable({
   ]
 
   return (
-    <DataTable 
-      columns={columns} 
-      data={agents} 
+    <DataTable
+      columns={columns}
+      data={agents}
       searchKey="name"
       searchPlaceholder="Filter by agent name..."
     />

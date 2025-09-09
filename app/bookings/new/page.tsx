@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -20,17 +19,17 @@ export default function NewBookingPage() {
 
   const handleBookingSubmit = async (bookingData: any) => {
     if (isSubmitting) return;
-    
+
     try {
       setIsSubmitting(true);
       console.log('Creating new booking:', bookingData);
-      
+
       const response = await api.post(API_ENDPOINTS.BOOKINGS.CREATE, bookingData, token);
       console.log('Booking created successfully:', response);
-      
+
       // Trigger dashboard refresh
       refreshDashboard();
-      
+
       // Redirect to bookings list after successful creation
       router.push('/bookings');
     } catch (error) {
@@ -69,7 +68,7 @@ export default function NewBookingPage() {
               </Link>
             </Button>
           </div>
-          
+
           <BookingForm
             booking={null}
             onSave={handleBookingSubmit}

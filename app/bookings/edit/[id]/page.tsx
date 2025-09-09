@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import BookingForm from '@/components/BookingForm';
@@ -46,10 +45,10 @@ export default function EditBookingPage() {
     try {
       await api.put(API_ENDPOINTS.BOOKINGS.EDIT(bookingId), bookingData, token);
       console.log('Booking updated:', bookingData);
-      
+
       // Trigger dashboard refresh
       refreshDashboard();
-      
+
       // Redirect to bookings list after successful update
       router.push('/bookings');
     } catch (err) {
@@ -111,7 +110,7 @@ export default function EditBookingPage() {
               </Link>
             </Button>
           </div>
-          
+
           <BookingForm
             booking={booking}
             onSave={handleBookingSubmit}

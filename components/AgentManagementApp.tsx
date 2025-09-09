@@ -23,7 +23,6 @@ import { api } from '@/utils/api';
 
 import { useAuth } from './auth/AuthContext';
 import { Agent } from '@/types/AgentTypes';
-import { UserPlus, Download, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { config } from '@/config/environment';
@@ -240,7 +239,7 @@ const AgentManagementApp: React.FC = () => {
                                                         <Checkbox
                                                             id="show-inactive"
                                                             checked={showInactive}
-                                                            onCheckedChange={(checked) => setShowInactive(checked as boolean)}
+                                                            onCheckedChange={(checked: boolean) => setShowInactive(checked as boolean)}
                                                         />
                                                         <Label htmlFor="show-inactive" className="text-sm font-medium">
                                                             Show Inactive

@@ -25,7 +25,6 @@ import {
 } from '@/components/ui/dialog';
 import { BookingsDataTable } from './BookingsDataTable';
 import { DashboardCard } from '@/components/ui/dashboard-card';
-import { DashboardHeader } from '@/components/ui/dashboard-header';
 import { QuickActions } from '@/components/ui/quick-actions';
 import * as XLSX from 'xlsx';
 import { api } from '@/utils/api';
@@ -33,7 +32,7 @@ import { useAuth } from './auth/AuthContext';
 import { useRefresh } from '@/contexts/RefreshContext';
 import { Booking, BookingsResponse } from '@/types/BookingTypes';
 import { Agent } from '@/types/AgentTypes';
-import { ChevronDown, ChevronUp, Filter, X, Download, Upload, Plus, Users, Calendar, TrendingUp, FileText, Activity } from 'lucide-react';
+import { ChevronDown, ChevronUp, Filter, X, Users, Calendar, TrendingUp, Activity } from 'lucide-react';
 import { config } from '@/config/environment';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
 
@@ -81,8 +80,6 @@ const BookingManagementApp: React.FC = () => {
     const [deleteConfirmBooking, setDeleteConfirmBooking] = useState<Booking | null>(null);
     const [agents, setAgents] = useState<Agent[]>([]);
     const [showFilters, setShowFilters] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const { token, isAuthenticated, isAdmin, user } = useAuth();
     const { refreshDashboard } = useRefresh();

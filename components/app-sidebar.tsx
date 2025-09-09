@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -127,7 +126,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter className="border-t p-4 space-y-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <div className="flex items-center gap-3 cursor-pointer hover:bg-accent hover:text-accent-foreground p-2 transition-colors" style={{borderRadius: 'clamp(0px, calc(100vw / 120 + 1rem), 16px)'}}>
+            <div className="flex items-center gap-3 cursor-pointer hover:bg-accent hover:text-accent-foreground p-2 transition-colors" style={{ borderRadius: 'clamp(0px, calc(100vw / 120 + 1rem), 16px)' }}>
               <Avatar className="h-8 w-8">
                 <AvatarImage src="" />
                 <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500 to-purple-600 text-white">

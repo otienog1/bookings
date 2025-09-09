@@ -26,7 +26,6 @@ import { Agent } from '@/types/AgentTypes';
 import { api } from '@/utils/api';
 import { useAuth } from './auth/AuthContext';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
-import Link from 'next/link';
 
 interface ApiError {
     status: number;
@@ -195,59 +194,83 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
             <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-3">
                 {/* Form Section */}
                 <div className="space-y-4 sm:space-y-6 xl:col-span-2">
-                {error && (
-                    <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                )}
+                    {error && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
 
-                <Card>
-                    <CardHeader className="pb-4">
-                        <CardTitle className="text-lg font-semibold">
-                            Booking Information
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                            Fill in the details below to {booking ? 'update the' : 'create a new'} booking.
-                        </p>
-                    </CardHeader>
-                    <CardContent>
-                        <Form {...form}>
-                            <form id="booking-form" onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                    <Card>
+                        <CardHeader className="pb-4">
+                            <CardTitle className="text-lg font-semibold">
+                                Booking Information
+                            </CardTitle>
+                            <p className="text-sm text-muted-foreground">
+                                Fill in the details below to {booking ? 'update the' : 'create a new'} booking.
+                            </p>
+                        </CardHeader>
+                        <CardContent>
+                            <Form {...form}>
+                                <form id="booking-form" onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
 
-                                {/* Basic Information */}
-                                <div className="space-y-4">
-                                    <h3 className="text-base font-medium text-foreground border-b pb-2">Basic Information</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Basic Information */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-base font-medium text-foreground border-b pb-2">Basic Information</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="name"
+                                                render={({ field }) => (
+                                                    <FormItem className="space-y-2">
+                                                        <FormLabel className="text-sm font-medium">Booking Name *</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                placeholder="Enter booking name"
+                                                                className="h-10 text-sm focus:ring-2 focus:ring-primary/20"
+                                                                {...field}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+
+                                            <FormField
+                                                control={form.control}
+                                                name="country"
+                                                render={({ field }) => (
+                                                    <FormItem className="space-y-2">
+                                                        <FormLabel className="text-sm font-medium">Destination Country *</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                placeholder="Enter destination country"
+                                                                className="h-10 text-sm focus:ring-2 focus:ring-primary/20"
+                                                                {...field}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Travel Dates */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-base font-medium text-foreground border-b pb-2">Travel Dates</h3>
                                         <FormField
                                             control={form.control}
-                                            name="name"
+                                            name="dateRange"
                                             render={({ field }) => (
                                                 <FormItem className="space-y-2">
-                                                    <FormLabel className="text-sm font-medium">Booking Name *</FormLabel>
+                                                    <FormLabel className="text-sm font-medium">Travel Period *</FormLabel>
                                                     <FormControl>
-                                                        <Input
-                                                            placeholder="Enter booking name"
-                                                            className="h-10 text-sm focus:ring-2 focus:ring-primary/20"
-                                                            {...field}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-
-                                        <FormField
-                                            control={form.control}
-                                            name="country"
-                                            render={({ field }) => (
-                                                <FormItem className="space-y-2">
-                                                    <FormLabel className="text-sm font-medium">Destination Country *</FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            placeholder="Enter destination country"
-                                                            className="h-10 text-sm focus:ring-2 focus:ring-primary/20"
-                                                            {...field}
+                                                        <DateRangePicker
+                                                            date={field.value}
+                                                            onDateChange={field.onChange}
+                                                            placeholder="Pick arrival and departure dates"
+                                                            className="h-10"
                                                         />
                                                     </FormControl>
                                                     <FormMessage />
@@ -255,209 +278,185 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
                                             )}
                                         />
                                     </div>
-                                </div>
 
-                                {/* Travel Dates */}
-                                <div className="space-y-4">
-                                    <h3 className="text-base font-medium text-foreground border-b pb-2">Travel Dates</h3>
-                                    <FormField
-                                        control={form.control}
-                                        name="dateRange"
-                                        render={({ field }) => (
-                                            <FormItem className="space-y-2">
-                                                <FormLabel className="text-sm font-medium">Travel Period *</FormLabel>
-                                                <FormControl>
-                                                    <DateRangePicker
-                                                        date={field.value}
-                                                        onDateChange={field.onChange}
-                                                        placeholder="Pick arrival and departure dates"
-                                                        className="h-10"
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
+                                    {/* Passenger Information */}
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-base font-medium text-foreground border-b pb-2 flex-1">Passenger Information</h3>
+                                            {totalPax > 0 && (
+                                                <Badge variant="secondary" className="ml-2">
+                                                    Total: {totalPax} pax
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="ladies"
+                                                render={({ field }) => (
+                                                    <FormItem className="space-y-2">
+                                                        <FormLabel className="text-sm font-medium">Ladies</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                className="h-10 text-sm text-center focus:ring-2 focus:ring-primary/20"
+                                                                {...field}
+                                                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
 
-                                {/* Passenger Information */}
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="text-base font-medium text-foreground border-b pb-2 flex-1">Passenger Information</h3>
-                                        {totalPax > 0 && (
-                                            <Badge variant="secondary" className="ml-2">
-                                                Total: {totalPax} pax
-                                            </Badge>
-                                        )}
+                                            <FormField
+                                                control={form.control}
+                                                name="men"
+                                                render={({ field }) => (
+                                                    <FormItem className="space-y-2">
+                                                        <FormLabel className="text-sm font-medium">Men</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                className="h-10 text-sm text-center focus:ring-2 focus:ring-primary/20"
+                                                                {...field}
+                                                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+
+                                            <FormField
+                                                control={form.control}
+                                                name="children"
+                                                render={({ field }) => (
+                                                    <FormItem className="space-y-2">
+                                                        <FormLabel className="text-sm font-medium">Children</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                className="h-10 text-sm text-center focus:ring-2 focus:ring-primary/20"
+                                                                {...field}
+                                                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+
+                                            <FormField
+                                                control={form.control}
+                                                name="teens"
+                                                render={({ field }) => (
+                                                    <FormItem className="space-y-2">
+                                                        <FormLabel className="text-sm font-medium">Teens</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                className="h-10 text-sm text-center focus:ring-2 focus:ring-primary/20"
+                                                                {...field}
+                                                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="ladies"
-                                            render={({ field }) => (
-                                                <FormItem className="space-y-2">
-                                                    <FormLabel className="text-sm font-medium">Ladies</FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="number"
-                                                            min="0"
-                                                            className="h-10 text-sm text-center focus:ring-2 focus:ring-primary/20"
-                                                            {...field}
-                                                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
 
-                                        <FormField
-                                            control={form.control}
-                                            name="men"
-                                            render={({ field }) => (
-                                                <FormItem className="space-y-2">
-                                                    <FormLabel className="text-sm font-medium">Men</FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="number"
-                                                            min="0"
-                                                            className="h-10 text-sm text-center focus:ring-2 focus:ring-primary/20"
-                                                            {...field}
-                                                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+                                    {/* Agent & Consultant Details */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-base font-medium text-foreground border-b pb-2">Agent & Consultant Details</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="agent_id"
+                                                render={({ field }) => (
+                                                    <FormItem className="space-y-2">
+                                                        <FormLabel className="text-sm font-medium">Travel Agent</FormLabel>
+                                                        <FormControl>
+                                                            <Combobox
+                                                                options={agentOptions}
+                                                                value={field.value && field.value !== "" ? field.value.toString() : ""}
+                                                                onValueChange={(value) => {
+                                                                    if (value && value.trim() !== "") {
+                                                                        field.onChange(value);
+                                                                    } else {
+                                                                        field.onChange("");
+                                                                    }
+                                                                }}
+                                                                placeholder="Select an agent"
+                                                                searchPlaceholder="Search agents..."
+                                                                emptyText={agents.length === 0 ? "Loading agents..." : "No agents found."}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
 
-                                        <FormField
-                                            control={form.control}
-                                            name="children"
-                                            render={({ field }) => (
-                                                <FormItem className="space-y-2">
-                                                    <FormLabel className="text-sm font-medium">Children</FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="number"
-                                                            min="0"
-                                                            className="h-10 text-sm text-center focus:ring-2 focus:ring-primary/20"
-                                                            {...field}
-                                                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-
-                                        <FormField
-                                            control={form.control}
-                                            name="teens"
-                                            render={({ field }) => (
-                                                <FormItem className="space-y-2">
-                                                    <FormLabel className="text-sm font-medium">Teens</FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="number"
-                                                            min="0"
-                                                            className="h-10 text-sm text-center focus:ring-2 focus:ring-primary/20"
-                                                            {...field}
-                                                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+                                            <FormField
+                                                control={form.control}
+                                                name="consultant"
+                                                render={({ field }) => (
+                                                    <FormItem className="space-y-2">
+                                                        <FormLabel className="text-sm font-medium">Consultant</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                {...field}
+                                                                placeholder="Consultant name"
+                                                                className="h-10 text-sm bg-muted focus:ring-2 focus:ring-primary/20"
+                                                                readOnly
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
                                     </div>
-                                </div>
 
-                                {/* Agent & Consultant Details */}
-                                <div className="space-y-4">
-                                    <h3 className="text-base font-medium text-foreground border-b pb-2">Agent & Consultant Details</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="agent_id"
-                                            render={({ field }) => (
-                                                <FormItem className="space-y-2">
-                                                    <FormLabel className="text-sm font-medium">Travel Agent</FormLabel>
-                                                    <FormControl>
-                                                        <Combobox
-                                                            options={agentOptions}
-                                                            value={field.value && field.value !== "" ? field.value.toString() : ""}
-                                                            onValueChange={(value) => {
-                                                                if (value && value.trim() !== "") {
-                                                                    field.onChange(value);
-                                                                } else {
-                                                                    field.onChange("");
-                                                                }
-                                                            }}
-                                                            placeholder="Select an agent"
-                                                            searchPlaceholder="Search agents..."
-                                                            emptyText={agents.length === 0 ? "Loading agents..." : "No agents found."}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+                                </form>
+                            </Form>
+                        </CardContent>
+                    </Card>
+                </div>
 
-                                        <FormField
-                                            control={form.control}
-                                            name="consultant"
-                                            render={({ field }) => (
-                                                <FormItem className="space-y-2">
-                                                    <FormLabel className="text-sm font-medium">Consultant</FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            {...field}
-                                                            placeholder="Consultant name"
-                                                            className="h-10 text-sm bg-muted focus:ring-2 focus:ring-primary/20"
-                                                            readOnly
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
-                                </div>
-
-                            </form>
-                        </Form>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Actions Sidebar */}
-            <div className="space-y-4 sm:space-y-6">
-                <Card>
-                    <CardHeader className="py-3 border-b">
-                        <CardTitle className="text-base font-semibold">Actions</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex gap-2 pt-6">
-                        <Button
-                            type="submit"
-                            form="booking-form"
-                            disabled={isSubmitting}
-                            className="flex-1 justify-center"
-                        >
-                            <CalendarDays className="h-4 w-4 mr-2" />
-                            {booking ? 'Update' : 'Create'} Booking
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={onCancel}
-                            disabled={isSubmitting}
-                            className="flex-1 justify-center"
-                        >
-                            Cancel
-                        </Button>
-                    </CardContent>
-                </Card>
+                {/* Actions Sidebar */}
+                <div className="space-y-4 sm:space-y-6">
+                    <Card>
+                        <CardHeader className="py-3 border-b">
+                            <CardTitle className="text-base font-semibold">Actions</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex gap-2 pt-6">
+                            <Button
+                                type="submit"
+                                form="booking-form"
+                                disabled={isSubmitting}
+                                className="flex-1 justify-center"
+                            >
+                                <CalendarDays className="h-4 w-4 mr-2" />
+                                {booking ? 'Update' : 'Create'} Booking
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={onCancel}
+                                disabled={isSubmitting}
+                                className="flex-1 justify-center"
+                            >
+                                Cancel
+                            </Button>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </div>

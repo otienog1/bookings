@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { MenuIcon, LogOut, User } from "lucide-react"
+import { LogOut, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import {
@@ -43,7 +43,7 @@ export function AppHeader({ title, description, breadcrumbs }: AppHeaderProps) {
     <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-2 h-4" />
-      
+
       {breadcrumbs && breadcrumbs.length > 0 && (
         <Breadcrumb>
           <BreadcrumbList>
@@ -66,7 +66,7 @@ export function AppHeader({ title, description, breadcrumbs }: AppHeaderProps) {
           </BreadcrumbList>
         </Breadcrumb>
       )}
-      
+
       <div className="ml-auto flex items-center gap-4">
         <div className="text-right hidden sm:block">
           <h1 className="text-sm font-semibold">{title}</h1>
@@ -74,7 +74,7 @@ export function AppHeader({ title, description, breadcrumbs }: AppHeaderProps) {
             <p className="text-xs text-muted-foreground">{description}</p>
           )}
         </div>
-        
+
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

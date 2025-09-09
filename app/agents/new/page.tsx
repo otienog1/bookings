@@ -10,6 +10,7 @@ import { api } from '@/utils/api';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
 import { useAuth } from '@/components/auth/AuthContext';
 import { useRefresh } from '@/contexts/RefreshContext';
+import { Agent } from '@/types/AgentTypes';
 
 export default function NewAgentPage() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function NewAgentPage() {
   const { refreshDashboard } = useRefresh();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleAgentSubmit = async (agentData: any) => {
+  const handleAgentSubmit = async (agentData: Agent) => {
     if (isSubmitting) return;
     
     try {

@@ -19,7 +19,6 @@ import { useRouter } from "next/navigation"
 
 interface AgentsDataTableProps {
   agents: Agent[]
-  onEdit: (agent: Agent) => void
   onDelete: (agent: Agent) => void
   onView?: (agent: Agent) => void
   isAdmin?: boolean
@@ -28,7 +27,6 @@ interface AgentsDataTableProps {
 
 export function AgentsDataTable({
   agents,
-  onEdit,
   onDelete,
   onView,
   isAdmin = false,

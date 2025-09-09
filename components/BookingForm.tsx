@@ -20,7 +20,7 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { format, isValid } from 'date-fns';
-import { CalendarDays, AlertCircle, X, ArrowLeft } from 'lucide-react';
+import { CalendarDays, AlertCircle } from 'lucide-react';
 import { Booking, BookingFormProps } from '@/types/BookingTypes';
 import { Agent } from '@/types/AgentTypes';
 import { api } from '@/utils/api';
@@ -101,7 +101,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
     useEffect(() => {
         if (booking) {
             // Helper function to safely parse dates
-            const parseDate = (dateValue: any): Date | undefined => {
+            const parseDate = (dateValue: unknown): Date | undefined => {
                 if (!dateValue) return undefined;
 
                 let date: Date;
@@ -109,9 +109,9 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
                     date = dateValue;
                 } else if (typeof dateValue === 'object' && dateValue !== null && '$date' in dateValue) {
                     // MongoDB date format
-                    date = new Date((dateValue as any).$date);
+                    date = new Date((dateValue as { $date: string | number | Date }).$date);
                 } else {
-                    date = new Date(dateValue);
+                    date = new Date(dateValue as string | number | Date);
                 }
 
                 return isValid(date) ? date : undefined;
@@ -172,7 +172,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
             };
 
             await onSave(bookingData);
-        } catch (error) {
+        } catch {
             setError('Failed to save booking. Please try again.');
         } finally {
             setIsSubmitting(false);

@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useRouter } from 'next/navigation';
+import { Card, CardContent } from "@/components/ui/card";
 import Link from 'next/link';
 import UILoader from '@/components/UILoader';
 import { Lock, User, Eye, EyeOff } from 'lucide-react';
@@ -18,8 +17,7 @@ const LoginForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, isLoading, error, isAuthenticated } = useAuth();
-  const router = useRouter();
+  const { login, isLoading, error } = useAuth();
   const [pageLoading, setPageLoading] = useState(true);
 
   // Check authentication status on initial load
@@ -41,7 +39,7 @@ const LoginForm: React.FC = () => {
     try {
       await login(username, password, rememberMe);
       // Don't redirect here, let parent component handle it
-    } catch (error) {
+    } catch {
       // Error handling is managed by the AuthContext
     }
   };

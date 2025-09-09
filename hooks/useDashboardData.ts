@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from 'react';
 import { dashboardApiUrl } from '@/config/apiEndpoints';
@@ -274,8 +275,8 @@ export function useDashboardData(refreshTrigger?: number): DashboardData {
             }
           }, {});
           
-          const trendsArray = Object.values(monthlyTrends).sort((a: any, b: any) => a.date.localeCompare(b.date));
-          setBookingTrends(trendsArray);
+          const trendsArray = (Object.values(monthlyTrends) as { date: string }[]).sort((a, b) => a.date.localeCompare(b.date));
+          setBookingTrends(trendsArray as BookingTrendData[]);
 
           // Generate daily trends data from real bookings for last 28 days
           const dailyTrends = bookingsArray.reduce((acc: any, booking: any) => {
@@ -472,7 +473,7 @@ export function useDashboardData(refreshTrigger?: number): DashboardData {
 
           // Generate sample data for current and previous year
           const currentYear = new Date().getFullYear();
-          const sampleData = [];
+          const sampleData: any[] = [];
           
           // Previous year data
           const prevYearMonths = [

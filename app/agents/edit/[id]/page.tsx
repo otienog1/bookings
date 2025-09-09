@@ -11,6 +11,7 @@ import { useAuth } from '@/components/auth/AuthContext';
 import { useRefresh } from '@/contexts/RefreshContext';
 import { api } from '@/utils/api';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
+import { Agent } from '@/types/AgentTypes';
 
 export default function EditAgentPage() {
   const params = useParams();
@@ -41,7 +42,7 @@ export default function EditAgentPage() {
     fetchAgent();
   }, [agentId, token]);
 
-  const handleAgentSubmit = async (agentData: any) => {
+  const handleAgentSubmit = async (agentData: Agent) => {
     try {
       await api.put(API_ENDPOINTS.AGENTS.EDIT(agentId), agentData, token);
       console.log('Agent updated:', agentData);

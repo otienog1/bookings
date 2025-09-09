@@ -1,8 +1,7 @@
 'use client';
 
-import { Search, RefreshCw, Download, Plus } from 'lucide-react';
+import { RefreshCw, Download, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -18,10 +17,6 @@ import Link from 'next/link';
 import { ThemeToggleIcon } from '@/components/ui/theme-toggle-icon';
 
 interface DashboardHeaderProps {
-  title?: string;
-  description?: string;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
   onRefresh: () => void;
   onExport?: () => void;
   onAdd?: () => void;
@@ -31,21 +26,15 @@ interface DashboardHeaderProps {
     href?: string;
   }>;
   addButtonText?: string;
-  searchPlaceholder?: string;
 }
 
 export function DashboardHeader({
-  title = "Dashboard",
-  description,
-  searchQuery,
-  onSearchChange,
   onRefresh,
   onExport,
   onAdd,
   isRefreshing = false,
   breadcrumbs,
-  addButtonText = "Add New",
-  searchPlaceholder = "Search..."
+  addButtonText = "Add New"
 }: DashboardHeaderProps) {
 
   return (

@@ -25,7 +25,7 @@ export default function EditorPlugins(): JSX.Element {
       <AutoFocusPlugin />
       <ListPlugin />
       <LinkPlugin />
-      <AutoLinkPlugin />
+      <AutoLinkPlugin matchers={[]} />
       <TablePlugin hasCellMerge={false} hasCellBackgroundColor={false} />
       <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
       <CheckListPlugin />

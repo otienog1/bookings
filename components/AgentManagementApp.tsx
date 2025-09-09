@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import React from 'react';
 import AgentForm from './AgentForm';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/dialog';
 import { AgentsDataTable } from './AgentsDataTable';
 import { QuickActions } from '@/components/ui/quick-actions';
-import * as XLSX from 'xlsx';
 import { api } from '@/utils/api';
 
 import { useAuth } from './auth/AuthContext';
@@ -128,33 +127,12 @@ const AgentManagementApp: React.FC = () => {
     };
 
     // Modal handlers
-    const openModal = (agent?: Agent) => {
-        setEditingAgent(agent || null);
-        setIsModalOpen(true);
-    };
 
     const closeModal = () => {
         setIsModalOpen(false);
         setEditingAgent(null);
     };
 
-    const exportToExcel = () => {
-        const worksheet = XLSX.utils.json_to_sheet(filteredAgents.map(agent => ({
-            Name: agent.name,
-            Company: agent.company || '',
-            Email: agent.email,
-            Phone: agent.phone || '',
-            Country: agent.country,
-            Address: agent.address || '',
-            Notes: agent.notes || '',
-            Status: agent.is_active ? 'Active' : 'Inactive'
-        })));
-
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Agents');
-
-        XLSX.writeFile(workbook, 'agents.xlsx');
-    };
 
     const importAgents = async (file: File) => {
         const formData = new FormData();
@@ -262,7 +240,6 @@ const AgentManagementApp: React.FC = () => {
                                         ) : (
                                             <AgentsDataTable
                                                 agents={filteredAgents}
-                                                onEdit={openModal}
                                                 onDelete={setDeleteConfirmAgent}
                                                 isAdmin={isAdmin}
                                                 currentUserId={user?.id}
@@ -276,7 +253,6 @@ const AgentManagementApp: React.FC = () => {
                             <div className="space-y-4 sm:space-y-6">
                                 <QuickActions
                                     onAddAgent={() => router.push('/agents/new')}
-                                    onExport={exportToExcel}
                                     className=""
                                 />
 

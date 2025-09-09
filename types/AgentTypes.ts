@@ -9,6 +9,7 @@ export interface Agent {
     notes?: string;
     is_active: boolean;
     user_id: string | number;
+    [key: string]: unknown;
 }
 
 export interface AgentFormProps {

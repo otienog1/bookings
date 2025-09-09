@@ -14,6 +14,7 @@ export interface Booking {
     consultant: string;
     user_id?: string | number;
     created_by?: string;
+    [key: string]: unknown;
 }
 
 export interface BookingsResponse {

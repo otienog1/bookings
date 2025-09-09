@@ -36,7 +36,7 @@ const ForgotPasswordForm: React.FC = () => {
       } else {
         setError(data.message || 'An error occurred while sending the reset email.');
       }
-    } catch (err) {
+    } catch {
       setError('Network error. Please try again.');
     } finally {
       setIsLoading(false);
@@ -56,7 +56,7 @@ const ForgotPasswordForm: React.FC = () => {
               Check your email
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              We've sent a password reset link to your email address
+              We&apos;ve sent a password reset link to your email address
             </p>
           </div>
 
@@ -64,10 +64,10 @@ const ForgotPasswordForm: React.FC = () => {
             <CardContent className="p-6 text-center">
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  We've sent a password reset link to <strong>{email}</strong>
+                  We&apos;ve sent a password reset link to <strong>{email}</strong>
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  If you don't see the email, check your spam folder or try again with a different email address.
+                  If you don&apos;t see the email, check your spam folder or try again with a different email address.
                 </p>
                 <div className="pt-4">
                   <Button asChild variant="outline" className="w-full">
@@ -84,7 +84,7 @@ const ForgotPasswordForm: React.FC = () => {
           {/* Resend Section */}
           <div className="text-center">
             <p className="text-sm text-muted-foreground">
-              Didn't receive the email?{" "}
+              Didn&apos;t receive the email?{" "}
               <Button 
                 variant="link" 
                 className="px-0 font-normal"
@@ -114,7 +114,7 @@ const ForgotPasswordForm: React.FC = () => {
             Forgot your password?
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            No worries, we'll send you reset instructions
+            No worries, we&apos;ll send you reset instructions
           </p>
         </div>
 

@@ -28,35 +28,37 @@ export function QuickActions({
   className
 }: QuickActionsProps) {
 
-  const actions: QuickActionItem[] = [
+  const actionList = [
     // Show New Booking button if onAddBooking is provided
-    onAddBooking && {
+    onAddBooking ? {
       title: 'New Booking',
       description: 'Create a new safari booking',
       icon: Calendar,
       onClick: onAddBooking,
-      variant: 'outline',
+      variant: 'outline' as const,
       disabled: false
-    },
+    } : null,
     // Show New Agent button if onAddAgent is provided
-    onAddAgent && {
+    onAddAgent ? {
       title: 'New Agent',
       description: 'Register a new travel agent',
       icon: Users,
       onClick: onAddAgent,
-      variant: 'outline',
+      variant: 'outline' as const,
       disabled: false
-    },
+    } : null,
     // Show Settings button if onSettings is provided
-    onSettings && {
+    onSettings ? {
       title: 'Settings',
       description: 'Manage system settings',
       icon: Settings,
       onClick: onSettings,
-      variant: 'outline',
+      variant: 'outline' as const,
       disabled: false
-    }
-  ].filter(Boolean).filter(action => !action.disabled);
+    } : null
+  ];
+  
+  const actions = actionList.filter((action) => action !== null && !action.disabled) as QuickActionItem[];
 
   return (
     <Card className={cn("bg-gradient-to-br from-primary/5 to-primary/10", className)}>

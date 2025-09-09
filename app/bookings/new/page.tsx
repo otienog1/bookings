@@ -10,6 +10,7 @@ import { api } from '@/utils/api';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
 import { useAuth } from '@/components/auth/AuthContext';
 import { useRefresh } from '@/contexts/RefreshContext';
+import { Booking } from '@/types/BookingTypes';
 
 export default function NewBookingPage() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function NewBookingPage() {
   const { refreshDashboard } = useRefresh();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleBookingSubmit = async (bookingData: any) => {
+  const handleBookingSubmit = async (bookingData: Booking) => {
     if (isSubmitting) return;
 
     try {

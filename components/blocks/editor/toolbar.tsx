@@ -12,17 +12,13 @@ import {
   HeadingTagType,
 } from '@lexical/rich-text';
 import {
-  INSERT_ORDERED_LIST_COMMAND,
-  INSERT_UNORDERED_LIST_COMMAND,
-  REMOVE_LIST_COMMAND,
   $isListNode,
   $isListItemNode,
-  $getListDepth,
   insertList,
   removeList,
 } from '@lexical/list';
 import { $setBlocksType } from '@lexical/selection';
-import { $createParagraphNode, $getNodeByKey } from 'lexical';
+import { $createParagraphNode } from 'lexical';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -42,7 +38,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-const LowPriority = 1;
 
 export default function ToolbarPlugin(): JSX.Element {
   const [editor] = useLexicalComposerContext();
@@ -87,7 +82,7 @@ export default function ToolbarPlugin(): JSX.Element {
           element = anchorNode.getKey() === 'root'
             ? anchorNode
             : anchorNode.getTopLevelElementOrThrow();
-        } catch (error) {
+        } catch {
           // If we can't get the element, fallback to paragraph
           setBlockType('paragraph');
           return;
@@ -127,8 +122,8 @@ export default function ToolbarPlugin(): JSX.Element {
           setBlockType('paragraph');
         }
       }
-    } catch (error) {
-      console.warn('Toolbar update error:', error);
+    } catch {
+      console.warn('Toolbar update error');
       setBlockType('paragraph');
     }
   }, [editor]);

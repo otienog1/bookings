@@ -4,7 +4,7 @@ import React from 'react';
 import { useAuth } from '@/components/auth/AuthContext';
 import { usePathname } from 'next/navigation';
 import { SessionExpiryWarning } from '@/components/auth/SessionExpiryWarning';
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
+import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardHeader } from "@/components/ui/dashboard-header"
 
@@ -159,13 +159,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         <AppSidebar />
         <main className="flex flex-1 flex-col overflow-hidden">
           <DashboardHeader
-            title={pageInfo.title}
-            description={pageInfo.description}
             breadcrumbs={pageInfo.breadcrumbs}
-            searchQuery=""
-            onSearchChange={() => {}}
             onRefresh={() => window.location.reload()}
-            searchPlaceholder=""
           />
           <div className="flex-1 overflow-auto">
             <div className="flex flex-1 flex-col gap-2 p-2 pt-2 sm:gap-4 sm:p-4">

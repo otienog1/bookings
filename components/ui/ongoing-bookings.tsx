@@ -3,7 +3,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Calendar, 
   MapPin, 
   Users,
   Clock,
@@ -30,8 +29,8 @@ interface OngoingBookingsProps {
 const formatDate = (dateStr: string): string => {
   try {
     let date: Date;
-    if (typeof dateStr === 'object' && (dateStr as any).$date) {
-      date = new Date((dateStr as any).$date);
+    if (typeof dateStr === 'object' && (dateStr as { $date: string }).$date) {
+      date = new Date((dateStr as { $date: string }).$date);
     } else {
       date = new Date(dateStr);
     }
@@ -53,8 +52,8 @@ const formatDate = (dateStr: string): string => {
 const getDaysRemaining = (endDateStr: string): number => {
   try {
     let endDate: Date;
-    if (typeof endDateStr === 'object' && (endDateStr as any).$date) {
-      endDate = new Date((endDateStr as any).$date);
+    if (typeof endDateStr === 'object' && (endDateStr as { $date: string }).$date) {
+      endDate = new Date((endDateStr as { $date: string }).$date);
     } else {
       endDate = new Date(endDateStr);
     }

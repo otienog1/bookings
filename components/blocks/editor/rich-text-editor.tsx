@@ -40,7 +40,7 @@ function OnChangeHandler({ onChange }: { onChange?: (html: string) => void }) {
 
   return (
     <OnChangePlugin
-      onChange={(editorState) => {
+      onChange={() => {
         editor.update(() => {
           if (onChange) {
             const htmlString = $generateHtmlFromNodes(editor, null);
@@ -72,7 +72,7 @@ function InitialValuePlugin({ value }: { value?: string }) {
               const dom = parser.parseFromString(value, 'text/html');
               const nodes = $generateNodesFromDOM(editor, dom);
               root.append(...nodes);
-            } catch (error) {
+            } catch {
               console.warn('Failed to parse HTML, treating as plain text');
               const paragraph = $createParagraphNode();
               paragraph.append($createTextNode(value));
@@ -129,17 +129,6 @@ export default function RichTextEditor({
         underline: 'underline',
         strikethrough: 'line-through',
         code: 'bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono',
-        fontFamily: {
-          system: '',
-          Arial: 'font-family-arial',
-          Helvetica: 'font-family-helvetica',
-          'Times New Roman': 'font-family-times',
-          Georgia: 'font-family-georgia',
-          Verdana: 'font-family-verdana',
-          'Trebuchet MS': 'font-family-trebuchet',
-          'Courier New': 'font-family-courier',
-          monospace: 'font-mono',
-        },
       },
       list: {
         nested: {

@@ -14,7 +14,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Save, X } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { Agent, AgentFormProps } from '@/types/AgentTypes';
 import RichTextEditor from '@/components/blocks/editor/rich-text-editor';
 

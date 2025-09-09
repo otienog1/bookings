@@ -27,14 +27,12 @@ import { useRouter } from "next/navigation"
 
 interface BookingsDataTableProps {
   bookings: Booking[]
-  onEdit: (booking: Booking) => void
   onDelete: (booking: Booking) => void
   onView: (booking: Booking) => void
 }
 
 export function BookingsDataTable({
   bookings,
-  onEdit,
   onDelete,
   onView
 }: BookingsDataTableProps) {
@@ -92,7 +90,7 @@ export function BookingsDataTable({
           if (rawValue instanceof Date) {
             date = rawValue
           } else if (typeof rawValue === 'object' && rawValue !== null && '$date' in rawValue) {
-            date = new Date((rawValue as any).$date)
+            date = new Date((rawValue as { $date: string | number | Date }).$date)
           } else {
             const dateStr = String(rawValue)
             date = new Date(dateStr)
@@ -134,7 +132,7 @@ export function BookingsDataTable({
               </Tooltip>
             </TooltipProvider>
           )
-        } catch (error) {
+        } catch {
           return <span className="text-destructive">Invalid date</span>
         }
       },
@@ -162,7 +160,7 @@ export function BookingsDataTable({
           if (rawValue instanceof Date) {
             date = rawValue
           } else if (typeof rawValue === 'object' && rawValue !== null && '$date' in rawValue) {
-            date = new Date((rawValue as any).$date)
+            date = new Date((rawValue as { $date: string | number | Date }).$date)
           } else {
             const dateStr = String(rawValue)
             date = new Date(dateStr)
@@ -204,7 +202,7 @@ export function BookingsDataTable({
               </Tooltip>
             </TooltipProvider>
           )
-        } catch (error) {
+        } catch {
           return <span className="text-destructive">Invalid date</span>
         }
       },
@@ -275,13 +273,13 @@ export function BookingsDataTable({
           const rawEnd = booking.date_to
           
           if (typeof rawStart === 'object' && rawStart !== null && '$date' in rawStart) {
-            startDate = new Date((rawStart as any).$date)
+            startDate = new Date((rawStart as { $date: string | number | Date }).$date)
           } else {
             startDate = new Date(String(rawStart))
           }
           
           if (typeof rawEnd === 'object' && rawEnd !== null && '$date' in rawEnd) {
-            endDate = new Date((rawEnd as any).$date)
+            endDate = new Date((rawEnd as { $date: string | number | Date }).$date)
           } else {
             endDate = new Date(String(rawEnd))
           }
@@ -311,7 +309,7 @@ export function BookingsDataTable({
               </Badge>
             )
           }
-        } catch (error) {
+        } catch {
           return <Badge variant="destructive">Error</Badge>
         }
       },

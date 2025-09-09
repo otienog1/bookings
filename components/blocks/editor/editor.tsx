@@ -29,7 +29,6 @@ interface EditorProps {
   placeholder?: string;
   className?: string;
   editable?: boolean;
-  autoFocus?: boolean;
 }
 
 function OnChangeHandler({ onChange }: { onChange?: (html: string) => void }) {
@@ -37,7 +36,7 @@ function OnChangeHandler({ onChange }: { onChange?: (html: string) => void }) {
 
   return (
     <OnChangePlugin
-      onChange={(editorState) => {
+      onChange={() => {
         editor.update(() => {
           if (onChange) {
             const htmlString = $generateHtmlFromNodes(editor, null);
@@ -88,7 +87,6 @@ export default function Editor({
   placeholder,
   className,
   editable = true,
-  autoFocus = false,
 }: EditorProps): JSX.Element {
   const initialConfig = {
     namespace: 'agent-notes-editor',
@@ -162,7 +160,7 @@ export default function Editor({
         <AutoFocusPlugin />
         <ListPlugin />
         <LinkPlugin />
-        <AutoLinkPlugin />
+        <AutoLinkPlugin matchers={[]} />
         <OnChangeHandler onChange={onChange} />
         <InitialValuePlugin value={value} />
       </div>

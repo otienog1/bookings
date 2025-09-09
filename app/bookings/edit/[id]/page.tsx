@@ -11,6 +11,7 @@ import { useAuth } from '@/components/auth/AuthContext';
 import { useRefresh } from '@/contexts/RefreshContext';
 import { api } from '@/utils/api';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
+import { Booking } from '@/types/BookingTypes';
 
 export default function EditBookingPage() {
   const params = useParams();
@@ -41,7 +42,7 @@ export default function EditBookingPage() {
     fetchBooking();
   }, [bookingId, token]);
 
-  const handleBookingSubmit = async (bookingData: any) => {
+  const handleBookingSubmit = async (bookingData: Booking) => {
     try {
       await api.put(API_ENDPOINTS.BOOKINGS.EDIT(bookingId), bookingData, token);
       console.log('Booking updated:', bookingData);

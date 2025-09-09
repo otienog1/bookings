@@ -82,7 +82,7 @@ const ResetPasswordForm: React.FC = () => {
       } else {
         setError(data.message || 'An error occurred while resetting your password.');
       }
-    } catch (err) {
+    } catch {
       setError('Network error. Please try again.');
     } finally {
       setIsLoading(false);

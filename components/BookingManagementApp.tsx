@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { format, isBefore, isAfter, startOfDay, endOfDay, isValid } from 'date-fns';
+import { format, startOfDay, endOfDay, isValid } from 'date-fns';
 import { type DateRange } from 'react-day-picker';
 import { useRouter } from 'next/navigation';
 import React from 'react';
@@ -26,7 +26,6 @@ import {
 import { BookingsDataTable } from './BookingsDataTable';
 import { DashboardCard } from '@/components/ui/dashboard-card';
 import { QuickActions } from '@/components/ui/quick-actions';
-import * as XLSX from 'xlsx';
 import { api } from '@/utils/api';
 import { useAuth } from './auth/AuthContext';
 import { useRefresh } from '@/contexts/RefreshContext';
@@ -54,7 +53,7 @@ interface Filters {
 }
 
 // Helper function to parse MongoDB date format
-const parseMongoDate = (dateValue: any): Date => {
+const parseMongoDate = (dateValue: unknown): Date => {
     if (!dateValue) return new Date(0); // Return epoch if null/undefined
 
     if (dateValue instanceof Date) {
@@ -67,7 +66,7 @@ const parseMongoDate = (dateValue: any): Date => {
     }
 
     // Fallback to regular date parsing
-    return new Date(dateValue);
+    return new Date(dateValue as string | number | Date);
 };
 
 const BookingManagementApp: React.FC = () => {
@@ -382,66 +381,13 @@ const BookingManagementApp: React.FC = () => {
     };
 
     // Modal handlers
-    const openModal = (booking?: Booking) => {
-        setEditingBooking(booking || null);
-        setIsModalOpen(true);
-    };
 
     const closeModal = () => {
         setIsModalOpen(false);
         setEditingBooking(null);
     };
 
-    // Booking status
-    const getBookingStatus = (dateFrom: string, dateTo: string): JSX.Element => {
-        if (!dateFrom || !dateTo) {
-            return <span className="text-gray-400">No dates</span>;
-        }
 
-        const today = new Date();
-        const startDate = new Date(dateFrom);
-        const endDate = new Date(dateTo);
-
-        if (!isValid(startDate) || !isValid(endDate)) {
-            return <span className="text-red-400">Invalid dates</span>;
-        }
-
-        if (isBefore(today, startDate)) {
-            return <span className="text-blue-600 font-medium">Upcoming</span>;
-        } else if (isAfter(today, endDate)) {
-            return <span className="text-gray-500">Completed</span>;
-        } else {
-            return <span className="text-green-600 font-medium">Ongoing</span>;
-        }
-    };
-
-    const exportToExcel = () => {
-        const worksheet = XLSX.utils.json_to_sheet(filteredBookings.map(booking => ({
-            Name: booking.name,
-            Arrival: booking.date_from && isValid(parseMongoDate(booking.date_from))
-                ? format(parseMongoDate(booking.date_from), 'EEE, d MMM')
-                : 'Invalid date',
-            Departure: booking.date_to && isValid(parseMongoDate(booking.date_to))
-                ? format(parseMongoDate(booking.date_to), 'EEE, d MMM')
-                : 'Invalid date',
-            Country: booking.country,
-            Pax: booking.pax,
-            Ladies: booking.ladies,
-            Men: booking.men,
-            Children: booking.children,
-            Teens: booking.teens,
-            Agent: agentLookup.get(booking.agent_id) || 'Unknown',
-            Consultant: booking.consultant,
-            Status: getBookingStatus(booking.date_from, booking.date_to).props.children,
-            CreatedBy: booking.created_by || '',
-        })));
-
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Bookings');
-
-        const fileName = `bookings_${format(new Date(), 'yyyy-MM-dd')}_filtered.xlsx`;
-        XLSX.writeFile(workbook, fileName);
-    };
 
     const importBookings = async (file: File) => {
         const formData = new FormData();
@@ -684,7 +630,6 @@ const BookingManagementApp: React.FC = () => {
                                     ) : (
                                         <BookingsDataTable
                                             bookings={enhancedBookings}
-                                            onEdit={openModal}
                                             onDelete={setDeleteConfirmBooking}
                                             onView={(booking) => console.log('View booking:', booking)}
                                         />
@@ -697,9 +642,6 @@ const BookingManagementApp: React.FC = () => {
                         <div className="space-y-4 sm:space-y-6">
                             <QuickActions
                                 onAddBooking={() => router.push('/bookings/new')}
-                                onExport={exportToExcel}
-                                onImport={isAdmin ? undefined : undefined}
-                                onGenerateFlyer={() => window.open('/flyer', '_blank')}
                             />
 
                             {/* Hidden file input for CSV import */}

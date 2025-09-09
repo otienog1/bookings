@@ -19,7 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./dropdown-menu"
-import { MoreHorizontal, Plus, Search, UserPlus } from "lucide-react"
+import { MoreHorizontal, Search, UserPlus } from "lucide-react"
 
 // Sample user data
 const sampleUsers = [

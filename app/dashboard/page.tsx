@@ -26,9 +26,6 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const router = useRouter();
 
-  const handleAddUser = () => {
-    console.log('Adding new user...');
-  };
 
   const handleAddBooking = () => {
     router.push('/bookings/new');
@@ -130,13 +127,12 @@ export default function AdminDashboard() {
             {/* Charts Section */}
             <div className="space-y-4 sm:space-y-6 xl:col-span-2">
               <BookingTrendsChart data={bookingTrends} dailyData={dailyTrends} />
-              <UsersTable onAddUser={handleAddUser} />
+              <UsersTable />
             </div>
 
             {/* Sidebar Section */}
             <div className="space-y-4 sm:space-y-6">
               <QuickActions
-                onAddUser={handleAddUser}
                 onAddBooking={handleAddBooking}
                 onAddAgent={handleAddAgent}
                 onSettings={handleSettings}

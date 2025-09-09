@@ -8,8 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { TrendingUp, Users, ChevronDown } from 'lucide-react';
-import { useState, useMemo, useRef } from 'react';
+import { Users, ChevronDown } from 'lucide-react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 
 interface BookingTrendData {
   month: string;
@@ -36,12 +36,12 @@ export function BookingTrendsChart({ data, dailyData }: BookingTrendsChartProps)
   const svgRef = useRef<SVGSVGElement>(null);
   
   // Use provided data or fallback to empty array
-  const allTrendsData = data || [];
+  const allTrendsData = useMemo(() => data || [], [data]);
   
   // Get daily data from props (real database data)
-  const getDailyData = (): DailyTrendData[] => {
+  const getDailyData = useCallback((): DailyTrendData[] => {
     return dailyData || [];
-  };
+  }, [dailyData]);
 
   // Filter data based on selected period
   const trendsData = useMemo(() => {
@@ -119,7 +119,7 @@ export function BookingTrendsChart({ data, dailyData }: BookingTrendsChartProps)
       default:
         return allTrendsData || [];
     }
-  }, [allTrendsData, dailyData, selectedPeriod]);
+  }, [allTrendsData, getDailyData, selectedPeriod]);
   
   // Handle empty data case
   if (trendsData.length === 0) {

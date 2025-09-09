@@ -1,10 +1,9 @@
 'use client';
 
-import { Plus, Download, Users, Calendar, FileText, Upload, Settings } from 'lucide-react';
+import { Users, Calendar, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
 
 interface QuickActionItem {
   title: string;
@@ -16,25 +15,18 @@ interface QuickActionItem {
 }
 
 interface QuickActionsProps {
-  onAddUser?: () => void;
   onAddBooking?: () => void;
   onAddAgent?: () => void;
   onSettings?: () => void;
-  onImport?: () => void;
-  onGenerateFlyer?: () => void;
   className?: string;
 }
 
 export function QuickActions({
-  onAddUser,
   onAddBooking,
   onAddAgent,
   onSettings,
-  onImport,
-  onGenerateFlyer,
   className
 }: QuickActionsProps) {
-  const router = useRouter();
 
   const actions: QuickActionItem[] = [
     // Show New Booking button if onAddBooking is provided

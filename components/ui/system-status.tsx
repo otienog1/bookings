@@ -13,22 +13,12 @@ import {
 } from 'lucide-react';
 import { useOngoingBookings } from '@/hooks/useOngoingBookings';
 
-interface OngoingBooking {
-  id: string;
-  name: string;
-  date_from: string;
-  date_to: string;
-  country: string;
-  pax: number;
-  agent_name: string;
-  agent_country: string;
-}
 
 const formatDate = (dateStr: string): string => {
   try {
     let date: Date;
-    if (typeof dateStr === 'object' && (dateStr as any).$date) {
-      date = new Date((dateStr as any).$date);
+    if (typeof dateStr === 'object' && (dateStr as { $date: string }).$date) {
+      date = new Date((dateStr as { $date: string }).$date);
     } else {
       date = new Date(dateStr);
     }
@@ -49,8 +39,8 @@ const formatDate = (dateStr: string): string => {
 const getDaysRemaining = (endDateStr: string): number => {
   try {
     let endDate: Date;
-    if (typeof endDateStr === 'object' && (endDateStr as any).$date) {
-      endDate = new Date((endDateStr as any).$date);
+    if (typeof endDateStr === 'object' && (endDateStr as { $date: string }).$date) {
+      endDate = new Date((endDateStr as { $date: string }).$date);
     } else {
       endDate = new Date(endDateStr);
     }
@@ -149,7 +139,6 @@ export function SystemStatus() {
       <CardContent className="space-y-4">
         {ongoingBookings.slice(0, 4).map((booking) => {
           const daysRemaining = getDaysRemaining(booking.date_to);
-          const progress = Math.max(10, Math.min(95, (7 - daysRemaining) * 12)); // Rough progress calculation
           
           return (
             <div key={booking.id} className="space-y-2">
@@ -180,7 +169,7 @@ export function SystemStatus() {
                     <div
                       className="h-2 rounded-full transition-all duration-700 bg-blue-500"
                       style={{
-                        width: `${progress}%`
+                        width: `${Math.max(10, Math.min(95, (7 - daysRemaining) * 12))}%`
                       }}
                     />
                   </div>

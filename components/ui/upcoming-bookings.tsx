@@ -31,33 +31,6 @@ interface UpcomingBookingsProps {
   error: string | null;
 }
 
-const formatDate = (dateStr: string): string => {
-  try {
-    let date: Date;
-    if (typeof dateStr === 'object' && (dateStr as any).$date) {
-      date = new Date((dateStr as any).$date);
-    } else {
-      date = new Date(dateStr);
-    }
-    
-    if (isNaN(date.getTime())) {
-      return 'Invalid Date';
-    }
-    
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  } catch {
-    return 'Invalid Date';
-  }
-};
-
-const getDurationText = (days: number): string => {
-  if (days === 1) return '1 day';
-  return `${days} days`;
-};
 
 const getTimeUntilStart = (daysUntilStart: number): string => {
   if (daysUntilStart === 0) return 'Today';
@@ -172,7 +145,6 @@ export function UpcomingBookings({ data, loading, error }: UpcomingBookingsProps
       <CardContent>
         <div className="space-y-4">
           {upcomingBookings.slice(0, 4).map((booking) => {
-            const progress = Math.max(10, Math.min(95, 100 - (booking.daysUntilStart * 2))); // Progress based on proximity
             
             return (
               <div key={booking.id} className="space-y-2">

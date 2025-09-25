@@ -1,18 +1,36 @@
 import { config } from '@/config/environment';
+import { AppError, handleApiError } from './errorHandler';
 
 interface ApiOptions extends RequestInit {
     token?: string | null;
 }
 
-class ApiError extends Error {
-    status: number;
-    data: any;
+interface ApiResponse<T = any> {
+    data: T;
+    message?: string;
+    success: boolean;
+}
 
+class ApiError extends AppError {
     constructor(message: string, status: number, data: any) {
-        super(message);
+        const code = getErrorCode(status);
+        super(message, code, status, { response: data });
         this.name = 'ApiError';
-        this.status = status;
-        this.data = data;
+    }
+}
+
+function getErrorCode(status: number): string {
+    switch (status) {
+        case 400: return 'BAD_REQUEST';
+        case 401: return 'UNAUTHORIZED';
+        case 403: return 'FORBIDDEN';
+        case 404: return 'NOT_FOUND';
+        case 422: return 'VALIDATION_ERROR';
+        case 429: return 'RATE_LIMITED';
+        case 500: return 'SERVER_ERROR';
+        case 502: return 'BAD_GATEWAY';
+        case 503: return 'SERVICE_UNAVAILABLE';
+        default: return 'HTTP_ERROR';
     }
 }
 
@@ -24,9 +42,13 @@ export const apiCall = async (url: string, options: ApiOptions = {}): Promise<an
 
     // Add authorization header if token is provided
     const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
         ...(fetchOptions.headers as Record<string, string>),
     };
+
+    // Only set Content-Type to application/json if body is not FormData
+    if (!(fetchOptions.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+    }
 
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -70,7 +92,12 @@ export const apiCall = async (url: string, options: ApiOptions = {}): Promise<an
         }
 
         // Network error or other fetch error
-        throw new Error('Network error. Please check your connection and try again.');
+        throw new AppError(
+            'Network error. Please check your connection and try again.',
+            'NETWORK_ERROR',
+            0,
+            { originalError: error }
+        );
     }
 };
 
@@ -82,14 +109,14 @@ export const api = {
     post: (url: string, body: any, token?: string | null) =>
         apiCall(url, {
             method: 'POST',
-            body: JSON.stringify(body),
+            body: body instanceof FormData ? body : JSON.stringify(body),
             token
         }),
 
     put: (url: string, body: any, token?: string | null) =>
         apiCall(url, {
             method: 'PUT',
-            body: JSON.stringify(body),
+            body: body instanceof FormData ? body : JSON.stringify(body),
             token
         }),
 

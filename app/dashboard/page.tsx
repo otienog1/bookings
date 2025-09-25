@@ -2,7 +2,7 @@
 
 import { Users, Calendar, CalendarCheck, Building2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { DashboardCard } from '@/components/ui/dashboard-card';
+import { DashboardCard, DashboardCardSkeleton } from '@/components/ui/dashboard-card';
 import { BookingTrendsChart } from '@/components/ui/revenue-chart';
 import { UsersTable } from '@/components/ui/users-table';
 import { QuickActions } from '@/components/ui/quick-actions';
@@ -27,27 +27,12 @@ export default function AdminDashboard() {
   const router = useRouter();
 
 
-  const handleAddBooking = () => {
-    router.push('/bookings/new');
-  };
-
-  const handleAddAgent = () => {
-    router.push('/agents/new');
-  };
+  // These handlers are no longer needed since QuickActions uses Links
 
   const handleSettings = () => {
     console.log('Opening settings...');
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-1 flex-col gap-2 p-2 pt-0 sm:gap-4 sm:p-4">
-        <div className="min-h-[calc(100vh-4rem)] flex-1 rounded-md p-3 sm:rounded-xl sm:p-4 md:p-6 flex items-center justify-center">
-          <UILoader text="Loading dashboard data..." />
-        </div>
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -70,8 +55,8 @@ export default function AdminDashboard() {
       change: dashboardStats?.totalBookings.change || '+0%',
       changeType: dashboardStats?.totalBookings.changeType || 'positive' as const,
       icon: Building2,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-500/10',
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
     },
     {
       title: 'Completed Bookings',
@@ -79,8 +64,8 @@ export default function AdminDashboard() {
       change: dashboardStats?.completedBookings.change || '+0%',
       changeType: dashboardStats?.completedBookings.changeType || 'positive' as const,
       icon: CalendarCheck,
-      color: 'text-green-500',
-      bgColor: 'bg-green-500/10',
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bgColor: 'bg-emerald-500/10',
     },
     {
       title: 'Upcoming Bookings',
@@ -88,8 +73,8 @@ export default function AdminDashboard() {
       change: dashboardStats?.upcomingBookings.change || '+0%',
       changeType: dashboardStats?.upcomingBookings.changeType || 'positive' as const,
       icon: Calendar,
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-500/10',
+      color: 'text-violet-600 dark:text-violet-400',
+      bgColor: 'bg-violet-500/10',
     },
     {
       title: 'Total Travelers',
@@ -97,7 +82,7 @@ export default function AdminDashboard() {
       change: dashboardStats?.totalPax.change || '+0%',
       changeType: dashboardStats?.totalPax.changeType || 'positive' as const,
       icon: Users,
-      color: 'text-orange-500',
+      color: 'text-orange-600 dark:text-orange-400',
       bgColor: 'bg-orange-500/10',
     },
   ];
@@ -117,25 +102,32 @@ export default function AdminDashboard() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
-            {stats.map((stat, index) => (
-              <DashboardCard key={stat.title} stat={stat} index={index} />
-            ))}
+            {loading ? (
+              Array.from({ length: 4 }).map((_, index) => (
+                <DashboardCardSkeleton key={`skeleton-${index}`} index={index} />
+              ))
+            ) : (
+              stats.map((stat, index) => (
+                <DashboardCard key={stat.title} stat={stat} index={index} />
+              ))
+            )}
           </div>
 
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-3">
             {/* Charts Section */}
             <div className="space-y-4 sm:space-y-6 xl:col-span-2">
-              <BookingTrendsChart data={bookingTrends} dailyData={dailyTrends} />
-              <UsersTable />
+              <BookingTrendsChart data={bookingTrends} dailyData={dailyTrends} loading={loading} />
+              <UsersTable isLoading={loading} />
             </div>
 
             {/* Sidebar Section */}
             <div className="space-y-4 sm:space-y-6">
               <QuickActions
-                onAddBooking={handleAddBooking}
-                onAddAgent={handleAddAgent}
+                onAddBooking={() => {}} // Will use Link instead
+                onAddAgent={() => {}} // Will use Link instead
                 onSettings={handleSettings}
+                isLoading={loading}
               />
               <SystemStatus />
               <UpcomingBookings data={upcomingBookings} loading={loading} error={error} />

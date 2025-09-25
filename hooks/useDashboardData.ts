@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from 'react';
-import { dashboardApiUrl } from '@/config/apiEndpoints';
+import { dashboardApiUrl, API_ENDPOINTS } from '@/config/apiEndpoints';
 import { config } from '@/config/environment';
 import { useAuth } from '@/components/auth/AuthContext';
 
@@ -135,7 +135,7 @@ export function useDashboardData(refreshTrigger?: number): DashboardData {
 
         // Try to use existing booking data to generate dashboard stats
         const [bookingsResponse] = await Promise.allSettled([
-          fetch(`${config.getApiUrl('/booking/fetch')}`, {
+          fetch(`${config.getApiUrl(API_ENDPOINTS.BOOKINGS.FETCH)}`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json',
@@ -361,7 +361,13 @@ export function useDashboardData(refreshTrigger?: number): DashboardData {
                 return false;
               }
 
-              return startDate <= currentTime && endDate >= currentTime;
+              // Use normalized dates for accurate comparison
+              const todayStart = new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate());
+              const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+              const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+              // Booking is ongoing if it has started but not ended (inclusive of today)
+              return startDateOnly <= todayStart && endDateOnly >= todayStart;
             } catch {
               return false;
             }
@@ -414,7 +420,10 @@ export function useDashboardData(refreshTrigger?: number): DashboardData {
               endDate = new Date(booking.date_to);
             }
 
-            const diffTime = startDate.getTime() - currentTime.getTime();
+            // Use normalized dates for accurate day comparison
+            const todayStart = new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate())
+            const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
+            const diffTime = startDateOnly.getTime() - todayStart.getTime();
             const daysUntilStart = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
             const durationTime = endDate.getTime() - startDate.getTime();
@@ -442,7 +451,7 @@ export function useDashboardData(refreshTrigger?: number): DashboardData {
           setUpcomingBookings(mappedUpcomingBookings);
         } else {
           console.warn('❌ Failed to fetch bookings data from backend');
-          console.warn('Bookings API URL:', `${config.getApiUrl('/booking/fetch')}`);
+          console.warn('Bookings API URL:', `${config.getApiUrl(API_ENDPOINTS.BOOKINGS.FETCH)}`);
           if (bookingsResponse.status === 'fulfilled') {
             console.warn('Response status:', bookingsResponse.value.status);
             console.warn('Response statusText:', bookingsResponse.value.statusText);

@@ -2,19 +2,11 @@
 
 import * as React from "react"
 import { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, MoreHorizontal, Eye, Edit, Trash2, MapPin, Users, Clock } from "lucide-react"
-import { format, isValid, differenceInDays, isPast, isFuture, isToday } from "date-fns"
+import { ArrowUpDown, MapPin, Users, Clock, AlertTriangle, Activity, Calendar, CheckCircle } from "lucide-react"
+import { format, isValid, differenceInDays, differenceInHours, isPast, isFuture, isToday } from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import {
   Tooltip,
   TooltipContent,
@@ -22,6 +14,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { DataTable } from "@/components/ui/data-table"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Booking } from "@/types/BookingTypes"
 import { useRouter } from "next/navigation"
 
@@ -29,16 +22,49 @@ interface BookingsDataTableProps {
   bookings: Booking[]
   onDelete: (booking: Booking) => void
   onView: (booking: Booking) => void
+  isLoading?: boolean
+  viewFilter?: string
+  onViewFilterChange?: (value: string) => void
 }
 
 export function BookingsDataTable({
   bookings,
   onDelete,
-  onView
+  onView,
+  isLoading = false,
+  viewFilter,
+  onViewFilterChange
 }: BookingsDataTableProps) {
   const router = useRouter()
   
+  const handleRowDoubleClick = (booking: Booking) => {
+    router.push(`/bookings/view/${booking.id}`)
+  }
+  
   const columns: ColumnDef<Booking>[] = [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       accessorKey: "name",
       header: ({ column }) => {
@@ -58,8 +84,8 @@ export function BookingsDataTable({
           <div className="space-y-1">
             <div className="font-medium">{booking.name}</div>
             {booking.country && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" />
+              <div className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors border-transparent bg-muted text-muted-foreground">
+                <MapPin className="h-3 w-3 mr-1" />
                 {booking.country}
               </div>
             )}
@@ -106,28 +132,64 @@ export function BookingsDataTable({
 
           const today = new Date()
           const isUpcoming = isFuture(date)
-          const daysDiff = differenceInDays(date, today)
-          
+
+          // Use start of day for accurate day comparison
+          const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+          const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+          const daysDiff = differenceInDays(dateStart, todayStart)
+
+          // For same day calculations, use a normalized time (12 PM) to avoid midnight issues
+          const todayNoon = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12, 0, 0)
+          const dateNoon = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0)
+          const hoursDiff = differenceInHours(dateNoon, todayNoon)
+
+          const getTimeText = () => {
+            // Check if the date is today by comparing just the date part
+            const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+            const bookingDateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+            const isSameDay = todayDateOnly.getTime() === bookingDateOnly.getTime()
+
+            if (isSameDay) {
+              // For same day, show relative to current time if we have time info, otherwise show "Today"
+              if (date.getHours() !== 0 || date.getMinutes() !== 0) {
+                const actualHoursDiff = differenceInHours(date, today)
+                if (actualHoursDiff > 0) {
+                  return `In ${actualHoursDiff} hours`
+                } else if (actualHoursDiff === 0) {
+                  return "Now"
+                } else {
+                  return `${Math.abs(actualHoursDiff)} hours ago`
+                }
+              } else {
+                return "Today"
+              }
+            } else if (daysDiff === 1) {
+              return "Tomorrow"
+            } else if (daysDiff > 0) {
+              return `In ${daysDiff} days`
+            } else if (daysDiff === -1) {
+              return "Yesterday"
+            } else if (daysDiff === 0) {
+              return "Today"
+            } else {
+              return `${Math.abs(daysDiff)} days ago`
+            }
+          }
+
           return (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="space-y-1">
                     <div className="font-medium">{format(date, "MMM dd, yyyy")}</div>
-                    <div className="flex items-center gap-1 text-xs">
-                      <Clock className="h-3 w-3" />
-                      <span className={isUpcoming ? "text-blue-600" : "text-muted-foreground"}>
-                        {isToday(date) ? "Today" : 
-                         daysDiff === 1 ? "Tomorrow" :
-                         daysDiff > 0 ? `In ${daysDiff} days` :
-                         daysDiff === -1 ? "Yesterday" :
-                         `${Math.abs(daysDiff)} days ago`}
-                      </span>
+                    <div className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors border-transparent bg-muted text-muted-foreground">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {getTimeText()}
                     </div>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>{format(date, "EEEE, MMMM d, yyyy")}</p>
+                <TooltipContent className="bg-card border border-border text-card-foreground shadow-md px-3 py-2 rounded-md">
+                  <p className="text-xs text-foreground">{format(date, "EEEE, MMMM d, yyyy 'at' h:mm a")}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -177,27 +239,50 @@ export function BookingsDataTable({
           const today = new Date()
           const isPastDate = isPast(date)
           const daysDiff = differenceInDays(date, today)
-          
+          const hoursDiff = differenceInHours(date, today)
+
+          const getTimeText = () => {
+            // Check if the date is today by comparing just the date part
+            const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+            const bookingDateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+            const isSameDay = todayDateOnly.getTime() === bookingDateOnly.getTime()
+
+            if (isSameDay) {
+              if (hoursDiff > 0) {
+                return `In ${hoursDiff} hours`
+              } else if (hoursDiff === 0) {
+                return "Now"
+              } else {
+                return `${Math.abs(hoursDiff)} hours ago`
+              }
+            } else if (daysDiff === 1) {
+              return "Tomorrow"
+            } else if (daysDiff > 0) {
+              return `In ${daysDiff} days`
+            } else if (daysDiff === -1) {
+              return "Yesterday"
+            } else if (daysDiff === 0) {
+              // Fallback for same day edge case
+              return `${Math.abs(hoursDiff)} hours ago`
+            } else {
+              return `${Math.abs(daysDiff)} days ago`
+            }
+          }
+
           return (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="space-y-1">
                     <div className="font-medium">{format(date, "MMM dd, yyyy")}</div>
-                    <div className="flex items-center gap-1 text-xs">
-                      <Clock className="h-3 w-3" />
-                      <span className={isPastDate ? "text-muted-foreground" : "text-blue-600"}>
-                        {isToday(date) ? "Today" : 
-                         daysDiff === 1 ? "Tomorrow" :
-                         daysDiff > 0 ? `In ${daysDiff} days` :
-                         daysDiff === -1 ? "Yesterday" :
-                         `${Math.abs(daysDiff)} days ago`}
-                      </span>
+                    <div className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors border-transparent bg-muted text-muted-foreground">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {getTimeText()}
                     </div>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>{format(date, "EEEE, MMMM d, yyyy")}</p>
+                <TooltipContent className="bg-card border border-border text-card-foreground shadow-md px-3 py-2 rounded-md">
+                  <p className="text-xs text-foreground">{format(date, "EEEE, MMMM d, yyyy 'at' h:mm a")}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -230,18 +315,16 @@ export function BookingsDataTable({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="font-mono">
-                    {totalPax}
-                  </Badge>
-                  <Users className="h-3 w-3 text-muted-foreground" />
+                <div className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors border-transparent bg-muted text-muted-foreground">
+                  <Users className="h-3 w-3 mr-1" />
+                  {totalPax} pax
                 </div>
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent className="bg-card border border-border text-card-foreground shadow-md px-3 py-2 rounded-md">
                 {hasBreakdown ? (
-                  <div className="space-y-1">
-                    <p className="font-medium">PAX Breakdown:</p>
-                    <div className="text-xs space-y-0.5">
+                  <div className="space-y-1.5">
+                    <p className="font-medium text-xs text-muted-foreground">PAX Breakdown</p>
+                    <div className="text-xs space-y-0.5 text-foreground">
                       <div>Ladies: {booking.ladies}</div>
                       <div>Men: {booking.men}</div>
                       <div>Children: {booking.children}</div>
@@ -249,7 +332,7 @@ export function BookingsDataTable({
                     </div>
                   </div>
                 ) : (
-                  <p>Total passengers: {totalPax}</p>
+                  <p className="text-xs text-foreground">Total passengers: {totalPax}</p>
                 )}
               </TooltipContent>
             </Tooltip>
@@ -289,22 +372,38 @@ export function BookingsDataTable({
           }
           
           // Determine status
-          if (startDate > today) {
-            const daysUntil = differenceInDays(startDate, today)
+          if (isToday(startDate)) {
             return (
-              <Badge variant="outline" className="text-blue-600 border-blue-200">
-                Upcoming {daysUntil <= 7 ? `(${daysUntil}d)` : ''}
+              <Badge className="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80 h-5 text-[10px]">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Arriving
+              </Badge>
+            )
+          } else if (isToday(endDate)) {
+            return (
+              <Badge className="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 h-5 text-[10px]">
+                <Clock className="h-3 w-3 mr-1" />
+                Departing
+              </Badge>
+            )
+          } else if (startDate > today) {
+            return (
+              <Badge className="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 h-5 text-[10px]">
+                <Calendar className="h-3 w-3 mr-1" />
+                Upcoming
               </Badge>
             )
           } else if (startDate <= today && endDate >= today) {
             return (
-              <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+              <Badge className="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 h-5 text-[10px]">
+                <Activity className="h-3 w-3 mr-1" />
                 Ongoing
               </Badge>
             )
           } else {
             return (
-              <Badge variant="secondary" className="text-muted-foreground">
+              <Badge className="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 h-5 text-[10px]">
+                <CheckCircle className="h-3 w-3 mr-1" />
                 Completed
               </Badge>
             )
@@ -314,56 +413,24 @@ export function BookingsDataTable({
         }
       },
     },
-    {
-      id: "actions",
-      enableHiding: false,
-      cell: ({ row }) => {
-        const booking = row.original
+  ]
 
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(booking.id?.toString() || "")}
-              >
-                Copy booking ID
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onView(booking)}>
-                <Eye className="mr-2 h-4 w-4" />
-                View details
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push(`/bookings/edit/${booking.id}`)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit booking
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => onDelete(booking)}
-                className="text-red-600"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete booking
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )
-      },
-    },
+  const filterOptions = [
+    { value: "all-bookings", label: "All Bookings" },
+    { value: "my-bookings", label: "My Bookings Only" },
   ]
 
   return (
-    <DataTable 
-      columns={columns} 
-      data={bookings} 
-      searchKey="name"
-      searchPlaceholder="Search bookings by name, agent, or destination..."
+    <DataTable
+      columns={columns}
+      data={bookings}
+      onRowDoubleClick={handleRowDoubleClick}
+      onDelete={onDelete}
+      isLoading={isLoading}
+      filterOptions={filterOptions}
+      filterValue={viewFilter}
+      onFilterChange={onViewFilterChange}
+      filterLabel="View"
     />
   )
 }

@@ -23,6 +23,7 @@ interface AgentsDataTableProps {
   onView?: (agent: Agent) => void
   isAdmin?: boolean
   currentUserId?: number
+  isLoading?: boolean
 }
 
 export function AgentsDataTable({
@@ -30,7 +31,8 @@ export function AgentsDataTable({
   onDelete,
   onView,
   isAdmin = false,
-  currentUserId
+  currentUserId,
+  isLoading = false
 }: AgentsDataTableProps) {
   const router = useRouter()
 
@@ -159,6 +161,7 @@ export function AgentsDataTable({
       data={agents}
       searchKey="name"
       searchPlaceholder="Filter by agent name..."
+      isLoading={isLoading}
     />
   )
 }

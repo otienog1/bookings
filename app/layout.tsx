@@ -3,6 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { AuthProvider } from "@/components/auth/AuthContext"
 import { RefreshProvider } from "@/contexts/RefreshContext"
+import { Toaster } from "sonner"
 
 
 export const metadata: Metadata = {
@@ -30,6 +31,17 @@ export default function RootLayout({
               disableTransitionOnChange
             >
               {children}
+              <Toaster
+                position="top-right"
+                expand={true}
+                richColors
+                closeButton
+                toastOptions={{
+                  style: {
+                    border: 'none',
+                  },
+                }}
+              />
             </ThemeProvider>
           </RefreshProvider>
         </AuthProvider>

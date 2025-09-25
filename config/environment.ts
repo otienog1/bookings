@@ -38,8 +38,8 @@ class ConfigManager {
     if (isDevelopment) {
       // Development environment - use proxy to avoid CORS issues
       if (typeof window !== "undefined") {
-        // Client-side: use the proxy route
-        apiBaseUrl = "/api";
+        // Client-side: use the proxy route (Next.js will rewrite /api/* to backend)
+        apiBaseUrl = "";
         frontendUrl = window.location.origin;
       } else {
         // Server-side: use direct API URL
@@ -99,6 +99,13 @@ class ConfigManager {
     const cleanEndpoint = endpoint.startsWith("/")
       ? endpoint.slice(1)
       : endpoint;
+
+    // If API_BASE_URL is empty (client-side in development), just return the endpoint
+    // This allows Next.js proxy to handle the routing
+    if (!this.config.API_BASE_URL) {
+      return `/${cleanEndpoint}`;
+    }
+
     return `${this.config.API_BASE_URL}/${cleanEndpoint}`;
   }
 

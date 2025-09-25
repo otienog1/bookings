@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Combobox } from "@/components/ui/combobox";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
     Form,
     FormControl,
@@ -26,6 +27,7 @@ import { Agent } from '@/types/AgentTypes';
 import { api } from '@/utils/api';
 import { useAuth } from './auth/AuthContext';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
+import RichTextEditor from '@/components/blocks/editor/rich-text-editor';
 
 interface ApiError {
     status: number;
@@ -48,6 +50,7 @@ const formSchema = z.object({
     teens: z.number().min(0, "Must be 0 or greater"),
     agent_id: z.union([z.string().min(1, "Please select an agent"), z.number().min(1, "Please select an agent")]),
     consultant: z.string().min(1, "Consultant is required"),
+    notes: z.string().optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -56,6 +59,8 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
     const [error, setError] = useState<string>('');
     const [agents, setAgents] = useState<Agent[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoadingAgents, setIsLoadingAgents] = useState(false);
+    const [notes, setNotes] = useState<string>('');
     const { token, user } = useAuth();
 
     const form = useForm<FormData>({
@@ -73,6 +78,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
             teens: 0,
             agent_id: "",
             consultant: user?.first_name || user?.username || 'Unknown',
+            notes: '',
         },
     });
 
@@ -80,6 +86,9 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
     useEffect(() => {
         const fetchAgents = async () => {
             try {
+                setIsLoadingAgents(true);
+
+
                 const data = await api.get(API_ENDPOINTS.AGENTS.FETCH, token);
                 if (data && data.agents && Array.isArray(data.agents)) {
                     setAgents(data.agents);
@@ -90,6 +99,8 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
                 if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
                     setError('Failed to load agents');
                 }
+            } finally {
+                setIsLoadingAgents(false);
             }
         };
 
@@ -133,7 +144,9 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
                 teens: booking.teens,
                 agent_id: booking.agent_id,
                 consultant: booking.consultant || (user?.first_name || user?.username || 'Unknown'),
+                notes: booking.notes || '',
             });
+            setNotes(booking.notes || '');
         }
     }, [booking, form, user?.first_name, user?.username]);
 
@@ -169,6 +182,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
                 consultant: values.consultant,
                 user_id: user?.id,
                 created_by: user?.username || '',
+                notes: notes,
             };
 
             await onSave(bookingData);
@@ -383,20 +397,24 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
                                                     <FormItem className="space-y-2">
                                                         <FormLabel className="text-sm font-medium">Travel Agent</FormLabel>
                                                         <FormControl>
-                                                            <Combobox
-                                                                options={agentOptions}
-                                                                value={field.value && field.value !== "" ? field.value.toString() : ""}
-                                                                onValueChange={(value) => {
-                                                                    if (value && value.trim() !== "") {
-                                                                        field.onChange(value);
-                                                                    } else {
-                                                                        field.onChange("");
-                                                                    }
-                                                                }}
-                                                                placeholder="Select an agent"
-                                                                searchPlaceholder="Search agents..."
-                                                                emptyText={agents.length === 0 ? "Loading agents..." : "No agents found."}
-                                                            />
+                                                            {isLoadingAgents ? (
+                                                                <Skeleton className="h-10 w-full" />
+                                                            ) : (
+                                                                <Combobox
+                                                                    options={agentOptions}
+                                                                    value={field.value && field.value !== "" ? field.value.toString() : ""}
+                                                                    onValueChange={(value) => {
+                                                                        if (value && value.trim() !== "") {
+                                                                            field.onChange(value);
+                                                                        } else {
+                                                                            field.onChange("");
+                                                                        }
+                                                                    }}
+                                                                    placeholder="Select an agent"
+                                                                    searchPlaceholder="Search agents..."
+                                                                    emptyText={agents.length === 0 ? "Loading agents..." : "No agents found."}
+                                                                />
+                                                            )}
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
@@ -421,6 +439,22 @@ const BookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCancel }) 
                                                     </FormItem>
                                                 )}
                                             />
+                                        </div>
+                                    </div>
+
+                                    {/* Additional Information */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-base font-medium text-foreground border-b pb-2">Additional Information</h3>
+                                        <div className="space-y-4">
+                                            <div className="space-y-2">
+                                                <FormLabel className="text-sm font-medium">Notes</FormLabel>
+                                                <RichTextEditor
+                                                    value={notes}
+                                                    onChange={setNotes}
+                                                    placeholder="Any additional notes or comments about this booking..."
+                                                    className="text-sm"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
 

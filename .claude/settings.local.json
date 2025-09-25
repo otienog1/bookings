@@ -12,7 +12,15 @@
       "Bash(npx npm-check-updates:*)",
       "Bash(npm audit:*)",
       "Bash(taskkill:*)",
-      "WebSearch"
+      "WebSearch",
+      "mcp__shadcn-ui__list_components",
+      "mcp__shadcn-ui__get_component",
+      "Bash(npm run lint:*)",
+      "Read(//c/Users/7plus8/build/bookings/backend/**)",
+      "Bash(python:*)",
+      "Bash(tasklist)",
+      "Bash(findstr:*)",
+      "Bash(netstat:*)"
     ],
     "deny": []
   }

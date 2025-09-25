@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { config } from '@/config/environment';
 import { useAuth } from '@/components/auth/AuthContext';
+import { API_ENDPOINTS } from '@/config/apiEndpoints';
 
 interface UpcomingBooking {
   id: string;
@@ -42,7 +43,7 @@ export function useUpcomingBookings(): UseUpcomingBookingsReturn {
           return;
         }
 
-        const response = await fetch(`${config.getApiUrl('/booking/fetch')}`, {
+        const response = await fetch(`${config.getApiUrl(API_ENDPOINTS.BOOKINGS.FETCH)}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -102,8 +103,10 @@ export function useUpcomingBookings(): UseUpcomingBookingsReturn {
               endDate = new Date(booking.date_to);
             }
 
-            // Calculate days until start
-            const diffTime = startDate.getTime() - currentDate.getTime();
+            // Calculate days until start using normalized dates
+            const todayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())
+            const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
+            const diffTime = startDateOnly.getTime() - todayStart.getTime();
             const daysUntilStart = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
             // Calculate duration in days

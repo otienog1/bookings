@@ -2,9 +2,11 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Calendar, 
-  MapPin, 
+import { Skeleton } from '@/components/ui/skeleton';
+import { useUpcomingBookings } from '@/hooks/useUpcomingBookings';
+import {
+  Calendar,
+  MapPin,
   Users,
   Clock,
   CheckCircle,
@@ -25,13 +27,6 @@ interface UpcomingBooking {
   duration: number;
 }
 
-interface UpcomingBookingsProps {
-  data: UpcomingBooking[] | null;
-  loading: boolean;
-  error: string | null;
-}
-
-
 const getTimeUntilStart = (daysUntilStart: number): string => {
   if (daysUntilStart === 0) return 'Today';
   if (daysUntilStart === 1) return 'Tomorrow';
@@ -41,23 +36,37 @@ const getTimeUntilStart = (daysUntilStart: number): string => {
 };
 
 const getStatusBadge = (daysUntilStart: number) => {
-  if (daysUntilStart <= 3) {
+  if (daysUntilStart === 0) {
     return (
-      <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
+      <Badge variant="destructive" className="h-6">
+        <AlertTriangle className="h-3 w-3 mr-1" />
+        Today
+      </Badge>
+    );
+  } else if (daysUntilStart === 1) {
+    return (
+      <Badge variant="outline" className="h-6 border-orange-200 text-orange-800 dark:border-orange-800 dark:text-orange-400">
+        <Clock className="h-3 w-3 mr-1" />
+        Tomorrow
+      </Badge>
+    );
+  } else if (daysUntilStart <= 3) {
+    return (
+      <Badge variant="outline" className="h-6 border-orange-200 text-orange-800 dark:border-orange-800 dark:text-orange-400">
         <AlertTriangle className="h-3 w-3 mr-1" />
         Starting Soon
       </Badge>
     );
   } else if (daysUntilStart <= 7) {
     return (
-      <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+      <Badge variant="outline" className="h-6 border-blue-200 text-blue-800 dark:border-blue-800 dark:text-blue-400">
         <Clock className="h-3 w-3 mr-1" />
         This Week
       </Badge>
     );
   } else {
     return (
-      <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+      <Badge variant="secondary" className="h-6">
         <CheckCircle className="h-3 w-3 mr-1" />
         Scheduled
       </Badge>
@@ -65,8 +74,8 @@ const getStatusBadge = (daysUntilStart: number) => {
   }
 };
 
-export function UpcomingBookings({ data, loading, error }: UpcomingBookingsProps) {
-  const upcomingBookings = data || [];
+export function UpcomingBookings() {
+  const { upcomingBookings, loading, error } = useUpcomingBookings();
 
   if (loading) {
     return (
@@ -81,8 +90,31 @@ export function UpcomingBookings({ data, loading, error }: UpcomingBookingsProps
           </p>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <div className="text-sm text-muted-foreground">Loading upcoming bookings...</div>
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={`skeleton-${index}`} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-purple-600" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                  <Skeleton className="h-5 w-16" />
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  <Skeleton className="h-3 w-16" />
+                  <Users className="h-3 w-3 ml-2" />
+                  <Skeleton className="h-3 w-12" />
+                  <Clock className="h-3 w-3 ml-2" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+
+                <div className="flex justify-end">
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -169,11 +201,6 @@ export function UpcomingBookings({ data, loading, error }: UpcomingBookingsProps
                   </span>
                 </div>
                 
-                <div className="flex justify-end">
-                  <span className="text-xs text-gray-900 dark:text-gray-100 font-medium">
-                    {getTimeUntilStart(booking.daysUntilStart)}
-                  </span>
-                </div>
               </div>
             );
           })}

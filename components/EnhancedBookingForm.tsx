@@ -13,6 +13,7 @@ import { Agent } from '@/types/AgentTypes';
 import { api } from '@/utils/api';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
 import { CalendarIcon, UserIcon, MapPinIcon, UsersIcon } from 'lucide-react';
+import RichTextEditor from '@/components/blocks/editor/rich-text-editor';
 
 interface ApiError {
     status: number;
@@ -35,7 +36,8 @@ const EnhancedBookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCa
         consultant: '',
         user_id: 0,
         created_by: '',
-        agent: '' // Set to empty string to match type 'string'
+        agent: '', // Set to empty string to match type 'string'
+        notes: ''
     });
 
     const [agents, setAgents] = useState<Agent[]>([]);
@@ -49,7 +51,8 @@ const EnhancedBookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCa
             setFormData({
                 ...booking,
                 date_from: new Date(booking.date_from).toISOString(),
-                date_to: new Date(booking.date_to).toISOString()
+                date_to: new Date(booking.date_to).toISOString(),
+                notes: booking.notes || ''
             });
         }
     }, [booking]);
@@ -92,6 +95,13 @@ const EnhancedBookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCa
         setFormData(prev => ({
             ...prev,
             [name]: new Date(value).toISOString()
+        }));
+    };
+
+    const handleNotesChange = (html: string) => {
+        setFormData(prev => ({
+            ...prev,
+            notes: html
         }));
     };
 
@@ -321,6 +331,20 @@ const EnhancedBookingForm: React.FC<BookingFormProps> = ({ booking, onSave, onCa
                                 value={formData.consultant}
                                 onChange={handleInputChange}
                                 placeholder="Enter consultant name"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Additional Information */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">Additional Information</h3>
+                        <div className="space-y-2">
+                            <Label htmlFor="notes">Notes</Label>
+                            <RichTextEditor
+                                value={formData.notes}
+                                onChange={handleNotesChange}
+                                placeholder="Any additional notes or comments about this booking..."
+                                className="text-sm"
                             />
                         </div>
                     </div>

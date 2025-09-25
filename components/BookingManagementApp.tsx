@@ -14,7 +14,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Combobox } from '@/components/ui/combobox';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -24,7 +23,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { BookingsDataTable } from './BookingsDataTable';
-import { DashboardCard } from '@/components/ui/dashboard-card';
+import { DashboardCard, DashboardCardSkeleton } from '@/components/ui/dashboard-card';
 import { QuickActions } from '@/components/ui/quick-actions';
 import { api } from '@/utils/api';
 import { useAuth } from './auth/AuthContext';
@@ -115,8 +114,11 @@ const BookingManagementApp: React.FC = () => {
             setLoading(true);
             setError('');
 
+
             const data: BookingsResponse = await api.get(API_ENDPOINTS.BOOKINGS.FETCH, token);
-            const sortedBookings = sortBookingsByDate(data.bookings);
+            // Filter out deleted/trashed bookings from main view
+            const activeBookings = data.bookings.filter(booking => !booking.is_deleted && !booking.deleted_at);
+            const sortedBookings = sortBookingsByDate(activeBookings);
             setBookings(sortedBookings);
         } catch (error) {
             if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
@@ -365,17 +367,17 @@ const BookingManagementApp: React.FC = () => {
         }
     };
 
-    const handleDeleteBooking = async (booking: Booking) => {
+    const handleMoveToTrash = async (booking: Booking) => {
         try {
             setError('');
-            await api.delete(API_ENDPOINTS.BOOKINGS.DELETE(String(booking.id)), token);
+            await api.put(API_ENDPOINTS.BOOKINGS.MOVE_TO_TRASH(String(booking.id)), {}, token);
 
             setBookings(prev => prev.filter(b => b.id !== booking.id));
             refreshDashboard();
             setDeleteConfirmBooking(null);
         } catch (error) {
             if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
-                setError((error as ApiError).message || 'Failed to delete booking');
+                setError((error as ApiError).message || 'Failed to move booking to trash');
             }
         }
     };
@@ -503,9 +505,15 @@ const BookingManagementApp: React.FC = () => {
 
                     {/* Stats Cards */}
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
-                        {dashboardStats.map((stat, index) => (
-                            <DashboardCard key={stat.title} stat={stat} index={index} />
-                        ))}
+                        {loading ? (
+                            Array.from({ length: 4 }).map((_, index) => (
+                                <DashboardCardSkeleton key={`skeleton-${index}`} index={index} />
+                            ))
+                        ) : (
+                            dashboardStats.map((stat, index) => (
+                                <DashboardCard key={stat.title} stat={stat} index={index} />
+                            ))
+                        )}
                     </div>
 
                     {/* Main Content Grid */}
@@ -527,7 +535,7 @@ const BookingManagementApp: React.FC = () => {
                                                 onClick={() => setShowFilters(!showFilters)}
                                                 variant={hasActiveFilters ? "default" : "outline"}
                                                 size="sm"
-                                                className="flex items-center gap-2"
+                                                className="flex items-center gap-2 h-8"
                                             >
                                                 <Filter className="h-4 w-4" />
                                                 Filters {hasActiveFilters && `(${Object.values(filters).filter(v => v !== '' && v !== 'all' && v !== false && v !== undefined).length})`}
@@ -539,7 +547,7 @@ const BookingManagementApp: React.FC = () => {
                                                     onClick={clearFilters}
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="flex items-center gap-1"
+                                                    className="flex items-center gap-1 h-8"
                                                 >
                                                     <X className="h-3 w-3" />
                                                     Clear All
@@ -551,7 +559,7 @@ const BookingManagementApp: React.FC = () => {
 
                                 {/* Filters Panel */}
                                 {showFilters && (
-                                    <CardContent>
+                                    <CardContent className='pb-0'>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-4">
                                             {/* Search */}
                                             <div className="space-y-2">
@@ -605,35 +613,20 @@ const BookingManagementApp: React.FC = () => {
                                                 />
                                             </div>
 
-                                            {/* Show My Bookings Only */}
-                                            <div className="flex items-center space-x-2">
-                                                <Checkbox
-                                                    id="my-bookings"
-                                                    checked={filters.showOnlyMyBookings}
-                                                    onCheckedChange={(checked) => setFilters({ ...filters, showOnlyMyBookings: checked as boolean })}
-                                                />
-                                                <Label htmlFor="my-bookings">My Bookings Only</Label>
-                                            </div>
                                         </div>
                                     </CardContent>
                                 )}
 
                                 {/* Data Table */}
-                                <CardContent className="px-4">
-                                    {loading ? (
-                                        <div className="flex justify-center items-center py-12">
-                                            <div className="text-center">
-                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                                                <p className="text-muted-foreground">Loading bookings...</p>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <BookingsDataTable
-                                            bookings={enhancedBookings}
-                                            onDelete={setDeleteConfirmBooking}
-                                            onView={(booking) => console.log('View booking:', booking)}
-                                        />
-                                    )}
+                                <CardContent className="px-0 pt-0">
+                                    <BookingsDataTable
+                                        bookings={enhancedBookings}
+                                        onDelete={setDeleteConfirmBooking}
+                                        onView={(booking) => console.log('View booking:', booking)}
+                                        isLoading={loading}
+                                        viewFilter={filters.showOnlyMyBookings ? "my-bookings" : "all-bookings"}
+                                        onViewFilterChange={(value) => setFilters({ ...filters, showOnlyMyBookings: value === "my-bookings" })}
+                                    />
                                 </CardContent>
                             </Card>
                         </div>
@@ -641,7 +634,8 @@ const BookingManagementApp: React.FC = () => {
                         {/* Sidebar Section */}
                         <div className="space-y-4 sm:space-y-6">
                             <QuickActions
-                                onAddBooking={() => router.push('/bookings/new')}
+                                onAddBooking={() => {}} // Will use Link instead
+                                isLoading={loading}
                             />
 
                             {/* Hidden file input for CSV import */}
@@ -659,14 +653,14 @@ const BookingManagementApp: React.FC = () => {
                 </div>
             </div>
 
-            {/* Confirm Delete Dialog */}
+            {/* Confirm Move to Trash Dialog */}
             <Dialog open={!!deleteConfirmBooking} onOpenChange={() => setDeleteConfirmBooking(null)}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>Confirm Delete</DialogTitle>
+                        <DialogTitle>Move to Trash</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to delete the booking for <strong>{deleteConfirmBooking?.name}</strong>?
-                            This action is irreversible.
+                            Are you sure you want to move the booking for <strong>{deleteConfirmBooking?.name}</strong> to trash?
+                            You can restore it later from the trash.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -678,9 +672,9 @@ const BookingManagementApp: React.FC = () => {
                         </Button>
                         <Button
                             variant="destructive"
-                            onClick={() => deleteConfirmBooking && handleDeleteBooking(deleteConfirmBooking)}
+                            onClick={() => deleteConfirmBooking && handleMoveToTrash(deleteConfirmBooking)}
                         >
-                            Delete Booking
+                            Move to Trash
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -41,6 +41,21 @@ const createAuthenticatedFetch = (logout: () => void, refreshToken: () => Promis
     let refreshPromise: Promise<boolean> | null = null;
 
     return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+        // Skip authentication for share API routes (public access)
+        const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+
+        // Check for share routes - handle both absolute and relative URLs
+        const isShareRoute = url && (
+            url.includes('/api/share/') ||
+            url.match(/\/api\/share\/[^\/]+$/) ||
+            url.match(/\/api\/share\/[^\/]+\//)
+        );
+
+        if (isShareRoute) {
+            console.log('🚫 Bypassing authentication for share route:', url);
+            return await originalFetch(input, init);
+        }
+
         let response = await originalFetch(input, init);
 
         // Check if the response is 401 (Unauthorized)

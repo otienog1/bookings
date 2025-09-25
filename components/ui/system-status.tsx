@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Calendar,
   MapPin,
@@ -44,13 +45,16 @@ const getDaysRemaining = (endDateStr: string): number => {
     } else {
       endDate = new Date(endDateStr);
     }
-    
+
     if (isNaN(endDate.getTime())) {
       return 0;
     }
-    
+
     const today = new Date();
-    const diffTime = endDate.getTime() - today.getTime();
+    // Use normalized dates for accurate day comparison
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    const diffTime = endDateOnly.getTime() - todayStart.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return Math.max(0, diffDays);
   } catch {
@@ -61,21 +65,21 @@ const getDaysRemaining = (endDateStr: string): number => {
 const getStatusBadge = (daysRemaining: number) => {
   if (daysRemaining === 0) {
     return (
-      <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400">
+      <Badge variant="destructive" className="h-6">
         <AlertTriangle className="h-3 w-3 mr-1" />
         Ends Today
       </Badge>
     );
   } else if (daysRemaining === 1) {
     return (
-      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
+      <Badge variant="outline" className="h-6 border-orange-200 text-orange-800 dark:border-orange-800 dark:text-orange-400">
         <Clock className="h-3 w-3 mr-1" />
         1 Day Left
       </Badge>
     );
   } else {
     return (
-      <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+      <Badge variant="secondary" className="h-6">
         <CheckCircle className="h-3 w-3 mr-1" />
         {daysRemaining} Days Left
       </Badge>
@@ -93,9 +97,35 @@ export function SystemStatus() {
           <CardTitle className="text-lg font-semibold">Ongoing Bookings</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-center py-8">
-            <div className="text-sm text-muted-foreground">Loading ongoing bookings...</div>
-          </div>
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={`skeleton-${index}`} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-blue-600" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+                <Skeleton className="h-5 w-16" />
+              </div>
+
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3" />
+                <Skeleton className="h-3 w-16" />
+                <Users className="h-3 w-3 ml-2" />
+                <Skeleton className="h-3 w-12" />
+                <Globe className="h-3 w-3 ml-2" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <div className="w-full bg-muted rounded-full h-1 mr-3">
+                    <Skeleton className="h-1 w-1/2 rounded-full" />
+                  </div>
+                  <Skeleton className="h-3 w-24 min-w-fit" />
+                </div>
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
     );
@@ -165,9 +195,9 @@ export function SystemStatus() {
               
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-3">
+                  <div className="w-full bg-muted rounded-full h-1 mr-3">
                     <div
-                      className="h-2 rounded-full transition-all duration-700 bg-blue-500"
+                      className="h-1 rounded-full transition-all duration-700 bg-primary"
                       style={{
                         width: `${Math.max(10, Math.min(95, (7 - daysRemaining) * 12))}%`
                       }}

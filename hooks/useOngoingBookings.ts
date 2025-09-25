@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { config } from '@/config/environment';
 import { useAuth } from '@/components/auth/AuthContext';
+import { API_ENDPOINTS } from '@/config/apiEndpoints';
 
 interface OngoingBooking {
   id: string;
@@ -38,7 +39,7 @@ export function useOngoingBookings(): UseOngoingBookingsReturn {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`${config.getApiUrl('/booking/fetch')}`, {
+        const response = await fetch(`${config.getApiUrl(API_ENDPOINTS.BOOKINGS.FETCH)}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -86,8 +87,13 @@ export function useOngoingBookings(): UseOngoingBookingsReturn {
                 return false;
               }
 
-              // Booking is ongoing if it has started but not ended
-              return startDate <= currentDate && endDate >= currentDate;
+              // Use normalized dates for accurate comparison
+              const todayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+              const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+              const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+              // Booking is ongoing if it has started but not ended (inclusive of today)
+              return startDateOnly <= todayStart && endDateOnly >= todayStart;
             } catch {
               return false;
             }

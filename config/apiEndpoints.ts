@@ -9,7 +9,8 @@ export const API_ENDPOINTS = {
         REFRESH: '/auth/refresh',
         VERIFY: '/auth/verify',
         LOGOUT: '/auth/logout',
-        PROFILE: '/auth/profile'
+        PROFILE: '/auth/profile',
+        USER: (id: string) => `/api/auth/user/${id}`
     },
 
     // Booking endpoints
@@ -19,12 +20,21 @@ export const API_ENDPOINTS = {
         CREATE: '/booking/create',
         EDIT: (id: string) => `/booking/edit/${id}`,
         DELETE: (id: string) => `/booking/delete/${id}`,
-        IMPORT: '/booking/import'
+        MOVE_TO_TRASH: (id: string) => `/booking/trash/${id}`,
+        RESTORE: (id: string) => `/booking/restore/${id}`,
+        FETCH_TRASH: '/booking/trash',
+        EMPTY_TRASH: '/booking/empty-trash',
+        IMPORT: '/booking/import',
+        // Document endpoints
+        DOCUMENTS: (id: string) => `/api/bookings/${id}/documents`,
+        DOCUMENT: (bookingId: string, documentId: string) => `/api/bookings/${bookingId}/documents/${documentId}`,
+        ITINERARY: (id: string) => `/api/bookings/${id}/itinerary`,
+        SHARE: (id: string) => `/api/share/${id}`
     },
 
     // Agent endpoints
     AGENTS: {
-        FETCH: '/agent/fetch',
+        FETCH: '/api/agent/fetch',
         GET: (id: string) => `/agent/${id}`,
         CREATE: '/agent/create',
         EDIT: (id: string) => `/agent/edit/${id}`,

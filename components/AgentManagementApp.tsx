@@ -229,22 +229,14 @@ const AgentManagementApp: React.FC = () => {
                                     </CardHeader>
 
                                     {/* Data Table */}
-                                    <CardContent className="px-4">
-                                        {loading ? (
-                                            <div className="flex justify-center items-center py-12">
-                                                <div className="text-center">
-                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                                                    <p className="text-muted-foreground">Loading agents...</p>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <AgentsDataTable
-                                                agents={filteredAgents}
-                                                onDelete={setDeleteConfirmAgent}
-                                                isAdmin={isAdmin}
-                                                currentUserId={user?.id}
-                                            />
-                                        )}
+                                    <CardContent className="px-0 pt-0">
+                                        <AgentsDataTable
+                                            agents={filteredAgents}
+                                            onDelete={setDeleteConfirmAgent}
+                                            isAdmin={isAdmin}
+                                            currentUserId={user?.id}
+                                            isLoading={loading}
+                                        />
                                     </CardContent>
                                 </Card>
                             </div>
@@ -252,8 +244,9 @@ const AgentManagementApp: React.FC = () => {
                             {/* Sidebar Section */}
                             <div className="space-y-4 sm:space-y-6">
                                 <QuickActions
-                                    onAddAgent={() => router.push('/agents/new')}
+                                    onAddAgent={() => {}} // Will use Link instead
                                     className=""
+                                    isLoading={loading}
                                 />
 
                                 {/* Hidden file input for CSV import */}

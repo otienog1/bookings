@@ -2,8 +2,10 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  MapPin, 
+import { Skeleton } from '@/components/ui/skeleton';
+import { useOngoingBookings } from '@/hooks/useOngoingBookings';
+import {
+  MapPin,
   Users,
   Clock,
   Activity,
@@ -18,12 +20,6 @@ interface OngoingBooking {
   pax: number;
   agent_name: string;
   agent_country: string;
-}
-
-interface OngoingBookingsProps {
-  data: OngoingBooking[] | null;
-  loading: boolean;
-  error: string | null;
 }
 
 const formatDate = (dateStr: string): string => {
@@ -103,8 +99,8 @@ const getStatusBadge = (daysRemaining: number) => {
   }
 };
 
-export function OngoingBookings({ data, loading, error }: OngoingBookingsProps) {
-  const ongoingBookings = data || [];
+export function OngoingBookings() {
+  const { ongoingBookings, loading, error } = useOngoingBookings();
 
   if (loading) {
     return (
@@ -119,8 +115,32 @@ export function OngoingBookings({ data, loading, error }: OngoingBookingsProps) 
           </p>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <div className="text-sm text-muted-foreground">Loading ongoing bookings...</div>
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={`skeleton-${index}`} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-green-600" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                  <Skeleton className="h-5 w-16" />
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  <Skeleton className="h-3 w-16" />
+                  <Users className="h-3 w-3 ml-2" />
+                  <Skeleton className="h-3 w-12" />
+                  <Clock className="h-3 w-3 ml-2" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+
+                <div className="flex justify-between items-center text-xs">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

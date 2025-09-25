@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -28,9 +29,10 @@ interface DailyTrendData {
 interface BookingTrendsChartProps {
   data?: BookingTrendData[] | null;
   dailyData?: DailyTrendData[] | null;
+  loading?: boolean;
 }
 
-export function BookingTrendsChart({ data, dailyData }: BookingTrendsChartProps) {
+export function BookingTrendsChart({ data, dailyData, loading = false }: BookingTrendsChartProps) {
   const [selectedPeriod, setSelectedPeriod] = useState('Last 28 Days');
   const [hoveredPoint, setHoveredPoint] = useState<{ index: number; x: number; y: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -120,7 +122,117 @@ export function BookingTrendsChart({ data, dailyData }: BookingTrendsChartProps)
         return allTrendsData || [];
     }
   }, [allTrendsData, getDailyData, selectedPeriod]);
-  
+
+  // Handle loading state first
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-blue-500" />
+              <CardTitle className="text-lg font-semibold">Booking Trends</CardTitle>
+            </div>
+            <Skeleton className="h-8 w-24" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Daily passenger and booking trends
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="relative w-full h-64 space-y-3">
+            {/* Chart area skeleton */}
+            <div className="h-48 relative bg-muted/20 rounded-lg overflow-hidden">
+              {/* Y-axis labels skeleton */}
+              <div className="absolute left-2 top-0 h-full flex flex-col justify-between py-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-3 w-6" />
+                ))}
+              </div>
+
+              {/* Chart line skeleton - wavy pattern */}
+              <div className="absolute inset-0 pl-12 pr-4 pt-4 pb-8">
+                <svg className="w-full h-full" viewBox="0 0 400 160">
+                  <defs>
+                    <linearGradient id="skeletonGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="currentColor" stopOpacity="0.1" />
+                      <stop offset="50%" stopColor="currentColor" stopOpacity="0.05" />
+                      <stop offset="100%" stopColor="currentColor" stopOpacity="0.1" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Grid lines skeleton */}
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <line
+                      key={`h-${i}`}
+                      x1="0"
+                      y1={i * 32}
+                      x2="400"
+                      y2={i * 32}
+                      stroke="currentColor"
+                      strokeOpacity="0.05"
+                      strokeWidth="1"
+                    />
+                  ))}
+
+                  {/* Vertical grid lines */}
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <line
+                      key={`v-${i}`}
+                      x1={i * 66.67}
+                      y1="0"
+                      x2={i * 66.67}
+                      y2="160"
+                      stroke="currentColor"
+                      strokeOpacity="0.03"
+                      strokeWidth="1"
+                    />
+                  ))}
+
+                  {/* Chart line skeleton */}
+                  <path
+                    d="M0,120 Q67,80 134,100 T268,70 T400,90"
+                    fill="none"
+                    stroke="url(#skeletonGradient)"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    opacity="0.3"
+                  />
+
+                  {/* Area fill skeleton */}
+                  <path
+                    d="M0,120 Q67,80 134,100 T268,70 T400,90 L400,160 L0,160 Z"
+                    fill="url(#skeletonGradient)"
+                    opacity="0.1"
+                  />
+
+                  {/* Data points skeleton */}
+                  {[67, 134, 201, 268, 334, 400].map((x, i) => (
+                    <circle
+                      key={i}
+                      cx={x}
+                      cy={[120, 80, 100, 70, 85, 90][i]}
+                      r="3"
+                      fill="currentColor"
+                      opacity="0.2"
+                    />
+                  ))}
+                </svg>
+              </div>
+
+              {/* X-axis labels skeleton */}
+              <div className="absolute bottom-2 left-12 right-4 flex justify-between">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-3 w-8" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Handle empty data case
   if (trendsData.length === 0) {
     return (

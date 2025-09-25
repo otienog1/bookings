@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./car
 import { Button } from "./button"
 import { Input } from "./input"
 import { Badge } from "./badge"
+import { Skeleton } from "./skeleton"
 import {
   Table,
   TableBody,
@@ -67,9 +68,10 @@ const sampleUsers = [
 
 interface UsersTableProps {
   onAddUser?: () => void
+  isLoading?: boolean
 }
 
-export function UsersTable({ onAddUser }: UsersTableProps) {
+export function UsersTable({ onAddUser, isLoading = false }: UsersTableProps) {
   const [searchTerm, setSearchTerm] = useState("")
 
   const filteredUsers = sampleUsers.filter(
@@ -150,42 +152,67 @@ export function UsersTable({ onAddUser }: UsersTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredUsers.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>
-                  <div>
-                    <div className="font-medium">{user.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {user.email}
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={`skeleton-${index}`}>
+                  <TableCell>
+                    <div>
+                      <Skeleton className="h-4 w-24 mb-1" />
+                      <Skeleton className="h-3 w-32" />
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell>{getRoleBadge(user.role)}</TableCell>
-                <TableCell>{getStatusBadge(user.status)}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {user.lastLogin}
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="h-8 w-8 p-0"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Edit user</DropdownMenuItem>
-                      <DropdownMenuItem>View details</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">
-                        Delete user
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-14" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-3 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-8 w-8" />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              filteredUsers.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{user.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {user.email}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>{getRoleBadge(user.role)}</TableCell>
+                  <TableCell>{getStatusBadge(user.status)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {user.lastLogin}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>Edit user</DropdownMenuItem>
+                        <DropdownMenuItem>View details</DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600">
+                          Delete user
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
         {filteredUsers.length === 0 && (

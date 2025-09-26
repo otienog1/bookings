@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -18,6 +18,7 @@ import { useAuth } from '@/components/auth/AuthContext';
 import { Booking } from '@/types/BookingTypes';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
 import { TrashDataTable } from '@/components/TrashDataTable';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ApiError {
   status: number;
@@ -33,7 +34,7 @@ export default function TrashPage() {
   const [emptyTrashConfirm, setEmptyTrashConfirm] = useState(false);
   const { token, isAuthenticated } = useAuth();
 
-  const fetchTrashedBookings = async () => {
+  const fetchTrashedBookings = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -46,7 +47,7 @@ export default function TrashPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   const handleRestore = async (booking: Booking) => {
     try {
@@ -94,18 +95,6 @@ export default function TrashPage() {
   }, [isAuthenticated, token, fetchTrashedBookings]);
 
 
-  if (loading) {
-    return (
-      <div className="flex flex-1 flex-col gap-2 p-2 pt-0 sm:gap-4 sm:p-4">
-        <div className="min-h-[calc(100vh-4rem)] flex-1 rounded-md p-3 sm:rounded-xl sm:p-4 md:p-6 flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-lg font-semibold">Loading...</h2>
-            <p className="text-sm text-muted-foreground mt-2">Fetching trashed bookings</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -115,12 +104,21 @@ export default function TrashPage() {
             {/* Page Title */}
             <div className="flex items-center justify-between px-2 sm:px-0">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                  Trash ({trashedBookings.length})
-                </h1>
-                <p className="text-muted-foreground text-sm sm:text-base">
-                  Bookings that have been moved to trash. You can restore or permanently delete them.
-                </p>
+                {loading ? (
+                  <>
+                    <Skeleton className="h-8 w-48 mb-2" />
+                    <Skeleton className="h-4 w-96" />
+                  </>
+                ) : (
+                  <>
+                    <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                      Trash ({trashedBookings.length})
+                    </h1>
+                    <p className="text-muted-foreground text-sm sm:text-base">
+                      Bookings that have been moved to trash. You can restore or permanently delete them.
+                    </p>
+                  </>
+                )}
               </div>
             </div>
 
@@ -135,7 +133,11 @@ export default function TrashPage() {
             {/* Trash Content */}
             <Card>
               <CardHeader>
-                <CardTitle>Trashed Bookings</CardTitle>
+                {loading ? (
+                  <Skeleton className="h-6 w-40" />
+                ) : (
+                  <CardTitle>Trashed Bookings</CardTitle>
+                )}
               </CardHeader>
               <CardContent>
                 {trashedBookings.length === 0 && !loading ? (

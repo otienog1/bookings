@@ -53,9 +53,7 @@ export function PaginatedTable<T extends { _id?: string; id?: string }>({
     initialLimit: itemsPerPageOptions[1] || 20,
   })
 
-  const { searchTerm, debouncedSearchTerm, setSearchTerm } = useDebouncedSearch({
-    delay: 300,
-  })
+  const { searchValue: searchTerm, debouncedValue: debouncedSearchTerm, setSearchValue: setSearchTerm } = useDebouncedSearch('', 300)
 
   const loadData = useCallback(async () => {
     setLoading(true)

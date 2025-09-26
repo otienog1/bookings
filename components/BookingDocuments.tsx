@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useDropzone, FileRejection } from 'react-dropzone';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -92,7 +92,7 @@ export const BookingDocuments: React.FC<BookingDocumentsProps> = ({ bookingId, b
     }, [fetchDocuments, fetchExistingShareToken]);
 
     // File upload handler
-    const onDrop = useCallback(async (acceptedFiles: File[], rejectedFiles: Array<{errors: Array<{message: string}>}>) => {
+    const onDrop = useCallback(async (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
         setError('');
 
         if (rejectedFiles.length > 0) {

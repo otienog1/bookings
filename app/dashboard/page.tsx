@@ -15,13 +15,13 @@ import { useRefresh } from '@/contexts/RefreshContext';
 
 export default function AdminDashboard() {
   const { dashboardRefreshTrigger } = useRefresh();
-  const { 
-    stats: dashboardStats, 
-    bookingTrends, 
-    dailyTrends, 
-    upcomingBookings,
-    loading, 
-    error 
+  const {
+    stats: dashboardStats,
+    bookingTrends,
+    dailyTrends,
+    // upcomingBookings,
+    loading,
+    error
   } = useDashboardData(dashboardRefreshTrigger);
   const { user } = useAuth();
   // const router = useRouter();
@@ -130,7 +130,7 @@ export default function AdminDashboard() {
                 isLoading={loading}
               />
               <SystemStatus />
-              <UpcomingBookings data={upcomingBookings} loading={loading} error={error} />
+              <UpcomingBookings />
             </div>
           </div>
         </div>

@@ -622,7 +622,6 @@ const BookingManagementApp: React.FC = () => {
                                     <BookingsDataTable
                                         bookings={enhancedBookings}
                                         onDelete={setDeleteConfirmBooking}
-                                        onView={(booking) => console.log('View booking:', booking)}
                                         isLoading={loading}
                                         viewFilter={filters.showOnlyMyBookings ? "my-bookings" : "all-bookings"}
                                         onViewFilterChange={(value) => setFilters({ ...filters, showOnlyMyBookings: value === "my-bookings" })}

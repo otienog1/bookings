@@ -208,7 +208,7 @@ export function DataTable<TData, TValue>({
                             size="sm"
                             className="h-8 px-2"
                           >
-                            <Link href={`/bookings/view/${(selectedRow as { id: string | number }).id}`}>
+                            <Link href={`/bookings/view/${(selectedRow as unknown as { id: string | number }).id}`}>
                               <Eye className="h-4 w-4" />
                             </Link>
                           </Button>
@@ -238,7 +238,7 @@ export function DataTable<TData, TValue>({
                             size="sm"
                             className="h-8 px-2"
                           >
-                            <Link href={`/bookings/edit/${(selectedRow as { id: string | number }).id}`}>
+                            <Link href={`/bookings/edit/${(selectedRow as unknown as { id: string | number }).id}`}>
                               <Edit className="h-4 w-4" />
                             </Link>
                           </Button>

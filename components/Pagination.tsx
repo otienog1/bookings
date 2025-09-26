@@ -2,11 +2,11 @@
 
 import { Button } from '@/components/ui/button'
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ChevronDoubleLeftIcon,
-  ChevronDoubleRightIcon
-} from '@radix-ui/react-icons'
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
+} from 'lucide-react'
 
 interface PaginationProps {
   currentPage: number
@@ -97,7 +97,7 @@ export function Pagination({
           disabled={currentPage === 1}
           className="h-8 w-8 p-0"
         >
-          <ChevronDoubleLeftIcon className="h-4 w-4" />
+          <ChevronsLeft className="h-4 w-4" />
         </Button>
 
         {/* Previous page */}
@@ -108,7 +108,7 @@ export function Pagination({
           disabled={currentPage === 1}
           className="h-8 w-8 p-0"
         >
-          <ChevronLeftIcon className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4" />
         </Button>
 
         {/* Page numbers */}
@@ -144,7 +144,7 @@ export function Pagination({
           disabled={currentPage === totalPages}
           className="h-8 w-8 p-0"
         >
-          <ChevronRightIcon className="h-4 w-4" />
+          <ChevronRight className="h-4 w-4" />
         </Button>
 
         {/* Last page */}
@@ -155,7 +155,7 @@ export function Pagination({
           disabled={currentPage === totalPages}
           className="h-8 w-8 p-0"
         >
-          <ChevronDoubleRightIcon className="h-4 w-4" />
+          <ChevronsRight className="h-4 w-4" />
         </Button>
       </div>
     </div>

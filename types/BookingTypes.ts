@@ -55,6 +55,7 @@ export interface ShareToken {
     shareUrl: string;
     expiresAt: string;
     categories: string[];
+    allowedCategories?: string[];
 }
 
 export interface DocumentUploadProgress {

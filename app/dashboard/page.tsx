@@ -1,7 +1,7 @@
 'use client';
 
 import { Users, Calendar, CalendarCheck, Building2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation';
 import { DashboardCard, DashboardCardSkeleton } from '@/components/ui/dashboard-card';
 import { BookingTrendsChart } from '@/components/ui/revenue-chart';
 import { UsersTable } from '@/components/ui/users-table';
@@ -11,7 +11,7 @@ import { UpcomingBookings } from '@/components/ui/upcoming-bookings';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useAuth } from '@/components/auth/AuthContext';
 import { useRefresh } from '@/contexts/RefreshContext';
-import UILoader from '@/components/UILoader';
+// import UILoader from '@/components/UILoader';
 
 export default function AdminDashboard() {
   const { dashboardRefreshTrigger } = useRefresh();
@@ -24,7 +24,7 @@ export default function AdminDashboard() {
     error 
   } = useDashboardData(dashboardRefreshTrigger);
   const { user } = useAuth();
-  const router = useRouter();
+  // const router = useRouter();
 
 
   // These handlers are no longer needed since QuickActions uses Links

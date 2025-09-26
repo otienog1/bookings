@@ -16,7 +16,7 @@ interface PaginatedTableProps<T> {
     page: number
     limit: number
     search?: string
-    [key: string]: any
+    [key: string]: unknown
   }) => Promise<{
     items: T[]
     meta: {

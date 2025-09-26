@@ -3,7 +3,7 @@
 import * as React from "react"
 import { ColumnDef } from "@tanstack/react-table"
 import { ArrowUpDown, MapPin, Users, Clock, AlertTriangle, Activity, Calendar, CheckCircle } from "lucide-react"
-import { format, isValid, differenceInDays, differenceInHours, isPast, isFuture, isToday } from "date-fns"
+import { format, isValid, differenceInDays, differenceInHours, isToday } from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -21,7 +21,6 @@ import { useRouter } from "next/navigation"
 interface BookingsDataTableProps {
   bookings: Booking[]
   onDelete: (booking: Booking) => void
-  onView: (booking: Booking) => void
   isLoading?: boolean
   viewFilter?: string
   onViewFilterChange?: (value: string) => void
@@ -30,7 +29,6 @@ interface BookingsDataTableProps {
 export function BookingsDataTable({
   bookings,
   onDelete,
-  onView,
   isLoading = false,
   viewFilter,
   onViewFilterChange
@@ -131,17 +129,11 @@ export function BookingsDataTable({
           }
 
           const today = new Date()
-          const isUpcoming = isFuture(date)
 
           // Use start of day for accurate day comparison
           const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
           const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate())
           const daysDiff = differenceInDays(dateStart, todayStart)
-
-          // For same day calculations, use a normalized time (12 PM) to avoid midnight issues
-          const todayNoon = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12, 0, 0)
-          const dateNoon = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0)
-          const hoursDiff = differenceInHours(dateNoon, todayNoon)
 
           const getTimeText = () => {
             // Check if the date is today by comparing just the date part
@@ -237,7 +229,6 @@ export function BookingsDataTable({
           }
 
           const today = new Date()
-          const isPastDate = isPast(date)
           const daysDiff = differenceInDays(date, today)
           const hoursDiff = differenceInHours(date, today)
 

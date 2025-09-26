@@ -18,7 +18,7 @@ import {
   Edit
 } from 'lucide-react';
 import Link from 'next/link';
-import UILoader from '@/components/UILoader';
+// import UILoader from '@/components/UILoader';
 import { useAuth } from '@/components/auth/AuthContext';
 import { api } from '@/utils/api';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
@@ -30,10 +30,10 @@ import { BookingDocuments } from '@/components/BookingDocuments';
 export default function ViewBookingPage() {
   const params = useParams();
   const bookingId = params.id as string;
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const [booking, setBooking] = useState<Booking | null>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [bookingOwner, setBookingOwner] = useState<any | null>(null);
+  const [bookingOwner, setBookingOwner] = useState<{ name: string; id: string | number; first_name?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

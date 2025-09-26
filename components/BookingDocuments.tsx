@@ -9,9 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
     Upload,
     File,
@@ -19,8 +18,6 @@ import {
     Trash2,
     Share,
     Copy,
-    Mail,
-    Eye,
     Calendar,
     FileText,
     Image,
@@ -41,7 +38,7 @@ interface BookingDocumentsProps {
 
 const DOCUMENT_CATEGORIES = ['Voucher', 'Air Ticket', 'Invoice', 'Other'] as const;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+// const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
 const MAX_FILES = 20;
 
 export const BookingDocuments: React.FC<BookingDocumentsProps> = ({ bookingId, bookingName }) => {
@@ -95,11 +92,11 @@ export const BookingDocuments: React.FC<BookingDocumentsProps> = ({ bookingId, b
     }, [fetchDocuments, fetchExistingShareToken]);
 
     // File upload handler
-    const onDrop = useCallback(async (acceptedFiles: File[], rejectedFiles: any[]) => {
+    const onDrop = useCallback(async (acceptedFiles: File[], rejectedFiles: Array<{errors: Array<{message: string}>}>) => {
         setError('');
 
         if (rejectedFiles.length > 0) {
-            const reasons = rejectedFiles.map(f => f.errors.map((e: any) => e.message).join(', ')).join('; ');
+            const reasons = rejectedFiles.map(f => f.errors.map((e: {message: string}) => e.message).join(', ')).join('; ');
             setError(`Some files were rejected: ${reasons}`);
         }
 
@@ -109,8 +106,6 @@ export const BookingDocuments: React.FC<BookingDocumentsProps> = ({ bookingId, b
         }
 
         for (const file of acceptedFiles) {
-            const progressId = `${file.name}-${Date.now()}`;
-
             // Add to upload progress
             setUploadProgress(prev => [...prev, {
                 filename: file.name,
@@ -190,7 +185,7 @@ export const BookingDocuments: React.FC<BookingDocumentsProps> = ({ bookingId, b
             await api.put(API_ENDPOINTS.BOOKINGS.DOCUMENT(bookingId, documentId), { category }, token);
             setDocuments(prev =>
                 prev.map(doc =>
-                    doc.id === documentId ? { ...doc, category: category as any } : doc
+                    doc.id === documentId ? { ...doc, category: category as 'Voucher' | 'Air Ticket' | 'Invoice' | 'Other' } : doc
                 )
             );
         } catch (err) {

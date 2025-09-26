@@ -42,7 +42,7 @@ export async function GET(
                     { error: parsed.error || 'Backend returned JSON instead of file' },
                     { status: 400 }
                 );
-            } catch (e) {
+            } catch {
                 return NextResponse.json(
                     { error: 'Backend returned invalid JSON response' },
                     { status: 500 }

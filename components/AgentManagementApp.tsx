@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import React from 'react';
-import AgentForm from './AgentForm';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +21,7 @@ import { api } from '@/utils/api';
 
 import { useAuth } from './auth/AuthContext';
 import { Agent } from '@/types/AgentTypes';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation';
 
 import { config } from '@/config/environment';
 import { API_ENDPOINTS } from '@/config/apiEndpoints';
@@ -37,12 +36,12 @@ const AgentManagementApp: React.FC = () => {
     const [filteredAgents, setFilteredAgents] = useState<Agent[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
+    // const [isModalOpen, setIsModalOpen] = useState(false);
+    // const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
     const [deleteConfirmAgent, setDeleteConfirmAgent] = useState<Agent | null>(null);
     const [showInactive, setShowInactive] = useState(false);
     const { token, isAuthenticated, isAdmin, user } = useAuth();
-    const router = useRouter();
+    // const router = useRouter();
 
 
     // Apply filters based on inactive filter
@@ -87,30 +86,30 @@ const AgentManagementApp: React.FC = () => {
         applyFilters(agents);
     }, [agents, applyFilters]);
 
-    // Updated CRUD Operations with API utility
-    const handleSaveAgent = async (agent: Agent) => {
-        try {
-            setError('');
-            const isEditing = !!agent.id;
-            const endpoint = isEditing
-                ? API_ENDPOINTS.AGENTS.EDIT(String(agent.id))
-                : API_ENDPOINTS.AGENTS.CREATE;
+    // // Updated CRUD Operations with API utility
+    // const handleSaveAgent = async (agent: Agent) => {
+    //     try {
+    //         setError('');
+    //         const isEditing = !!agent.id;
+    //         const endpoint = isEditing
+    //             ? API_ENDPOINTS.AGENTS.EDIT(String(agent.id))
+    //             : API_ENDPOINTS.AGENTS.CREATE;
 
-            // Remove response variable since it's not being used
-            if (isEditing) {
-                await api.put(endpoint, agent, token);
-            } else {
-                await api.post(endpoint, agent, token);
-            }
+    //         // Remove response variable since it's not being used
+    //         if (isEditing) {
+    //             await api.put(endpoint, agent, token);
+    //         } else {
+    //             await api.post(endpoint, agent, token);
+    //         }
 
-            await fetchAgents();
-            closeModal();
-        } catch (error) {
-            if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
-                setError((error as ApiError).message || 'Failed to save agent');
-            }
-        }
-    };
+    //         await fetchAgents();
+    //         closeModal();
+    //     } catch (error) {
+    //         if (typeof error === 'object' && error !== null && 'status' in error && (error as ApiError).status !== 401) {
+    //             setError((error as ApiError).message || 'Failed to save agent');
+    //         }
+    //     }
+    // };
 
     const handleDeleteAgent = async (agent: Agent) => {
         try {
@@ -126,12 +125,12 @@ const AgentManagementApp: React.FC = () => {
         }
     };
 
-    // Modal handlers
+    // // Modal handlers
 
-    const closeModal = () => {
-        setIsModalOpen(false);
-        setEditingAgent(null);
-    };
+    // const closeModal = () => {
+    //     setIsModalOpen(false);
+    //     setEditingAgent(null);
+    // };
 
 
     const importAgents = async (file: File) => {
@@ -293,7 +292,7 @@ const AgentManagementApp: React.FC = () => {
             </Dialog>
 
             {/* Agent Form Dialog */}
-            <Dialog open={isModalOpen} onOpenChange={closeModal}>
+            {/* <Dialog open={isModalOpen} onOpenChange={closeModal}>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{editingAgent ? 'Edit Agent' : 'Create New Agent'}</DialogTitle>
@@ -307,7 +306,7 @@ const AgentManagementApp: React.FC = () => {
                         onCancel={closeModal}
                     />
                 </DialogContent>
-            </Dialog>
+            </Dialog> */}
         </>
     );
 };

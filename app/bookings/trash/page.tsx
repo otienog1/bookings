@@ -91,7 +91,7 @@ export default function TrashPage() {
     if (isAuthenticated && token) {
       fetchTrashedBookings();
     }
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, fetchTrashedBookings]);
 
 
   if (loading) {

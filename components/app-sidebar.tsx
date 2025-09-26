@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Calendar, Users, Building2, FileText, BarChart3, Activity, LogOut, ChevronUp, Settings, Trash2 } from "lucide-react"
+import { Calendar, Users, Building2, FileText, BarChart3, LogOut, ChevronUp, Settings, Trash2 } from "lucide-react"
 import { useAuth } from "@/components/auth/AuthContext"
 
 import {
@@ -57,11 +57,6 @@ const data = {
       title: "Flyer Generator",
       url: "/flyer",
       icon: FileText,
-    },
-    {
-      title: "Activity",
-      url: "/activity",
-      icon: Activity,
     },
   ],
 }

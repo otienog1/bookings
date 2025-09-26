@@ -20,7 +20,8 @@
       "Bash(python:*)",
       "Bash(tasklist)",
       "Bash(findstr:*)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

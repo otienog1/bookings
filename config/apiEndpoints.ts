@@ -69,7 +69,8 @@ export const getFullApiUrl = (endpoint: string): string => {
 
 // Specific helper functions for each module
 export const authApiUrl = (endpoint: keyof typeof API_ENDPOINTS.AUTH): string => {
-    return getFullApiUrl(API_ENDPOINTS.AUTH[endpoint]);
+    const url = API_ENDPOINTS.AUTH[endpoint] as string;
+    return getFullApiUrl(url);
 };
 
 export const bookingsApiUrl = (endpoint: keyof typeof API_ENDPOINTS.BOOKINGS | string): string => {

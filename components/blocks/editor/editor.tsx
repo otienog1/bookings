@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
@@ -87,7 +88,7 @@ export default function Editor({
   placeholder,
   className,
   editable = true,
-}: EditorProps): JSX.Element {
+}: EditorProps) {
   const initialConfig = {
     namespace: 'agent-notes-editor',
     nodes: [

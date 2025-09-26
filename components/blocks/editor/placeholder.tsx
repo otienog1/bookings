@@ -1,3 +1,4 @@
+import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface PlaceholderProps {
@@ -5,7 +6,7 @@ interface PlaceholderProps {
   className?: string;
 }
 
-export default function Placeholder({ children, className }: PlaceholderProps): JSX.Element {
+export default function Placeholder({ children, className }: PlaceholderProps) {
   return (
     <div
       className={cn(

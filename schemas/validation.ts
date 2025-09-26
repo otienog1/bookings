@@ -57,7 +57,7 @@ export const bookingSchema = z.object({
   date_to: dateStringSchema,
   pax: z.number().min(1, 'Number of passengers must be at least 1').max(100, 'Number of passengers cannot exceed 100'),
   rate_basis: z.enum(['Adult', 'Child', 'Family'], {
-    errorMap: () => ({ message: 'Rate basis must be Adult, Child, or Family' })
+    message: 'Rate basis must be Adult, Child, or Family'
   }),
   consultant: z.string().optional(),
   notes: z.string().max(1000, 'Notes must be at most 1000 characters').optional(),
@@ -90,9 +90,9 @@ export const agentUpdateSchema = agentSchema.partial().extend({
 
 // Document schemas
 export const documentUploadSchema = z.object({
-  file: z.instanceof(File, 'Please select a file'),
+  file: z.instanceof(File, { message: 'Please select a file' }),
   category: z.enum(['Voucher', 'Air Ticket', 'Invoice', 'Other'], {
-    errorMap: () => ({ message: 'Please select a valid document category' })
+    message: 'Please select a valid document category'
   })
 }).refine((data) => {
   const allowedTypes = [
@@ -169,7 +169,7 @@ export function validateForm<T>(schema: z.ZodSchema<T>, data: unknown): { succes
   } catch (error) {
     if (error instanceof z.ZodError) {
       const errors: Record<string, string> = {}
-      error.errors.forEach((err) => {
+      error.issues.forEach((err) => {
         const path = err.path.join('.')
         errors[path] = err.message
       })
@@ -181,12 +181,12 @@ export function validateForm<T>(schema: z.ZodSchema<T>, data: unknown): { succes
 
 export function validateField<T>(schema: z.ZodSchema<T>, fieldName: string, value: unknown): string | null {
   try {
-    const fieldSchema = schema.shape?.[fieldName] || schema
+    const fieldSchema = (schema as any).shape?.[fieldName] || schema
     fieldSchema.parse(value)
     return null
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return error.errors[0]?.message || 'Invalid value'
+      return error.issues[0]?.message || 'Invalid value'
     }
     return 'Validation error'
   }

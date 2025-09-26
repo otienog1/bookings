@@ -39,7 +39,7 @@ import {
 } from '@/components/ui/select';
 
 
-export default function ToolbarPlugin(): JSX.Element {
+export default function ToolbarPlugin() {
   const [editor] = useLexicalComposerContext();
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);

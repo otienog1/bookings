@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState, useEffect, useRef } from 'react';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
@@ -15,7 +16,6 @@ import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getRoot, $createParagraphNode, $createTextNode } from 'lexical';
-import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 // Node imports
@@ -98,7 +98,7 @@ export default function RichTextEditor({
   placeholder,
   className,
   editable = true,
-}: RichTextEditorProps): JSX.Element {
+}: RichTextEditorProps) {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {

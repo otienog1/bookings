@@ -1,3 +1,4 @@
+import React from 'react';
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
 import { AutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin';
 import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin';
@@ -13,7 +14,7 @@ import ContentEditable from './content-editable';
 import Placeholder from './placeholder';
 import { TRANSFORMERS } from '@lexical/markdown';
 
-export default function EditorPlugins(): JSX.Element {
+export default function EditorPlugins() {
   return (
     <>
       <RichTextPlugin

@@ -15,7 +15,7 @@ export default function SimpleEditor({
   onChange,
   placeholder,
   className,
-}: SimpleEditorProps): JSX.Element {
+}: SimpleEditorProps) {
   const [isClient, setIsClient] = useState(false);
   const [text, setText] = useState(value || '');
 

@@ -11,16 +11,17 @@ import {
   Activity,
   CheckCircle
 } from 'lucide-react';
-interface OngoingBooking {
-  id: string;
-  name: string;
-  date_from: string;
-  date_to: string;
-  country: string;
-  pax: number;
-  agent_name: string;
-  agent_country: string;
-}
+// Keeping interface for future use
+// interface OngoingBooking {
+//   id: string;
+//   name: string;
+//   date_from: string;
+//   date_to: string;
+//   country: string;
+//   pax: number;
+//   agent_name: string;
+//   agent_country: string;
+// }
 
 const formatDate = (dateStr: string): string => {
   try {

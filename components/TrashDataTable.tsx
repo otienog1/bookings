@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, RotateCcw, Trash2, MapPin, Users } from "lucide-react"
+import { ArrowUpDown, Trash2, MapPin, Users } from "lucide-react"
 import { format, isValid } from "date-fns"
 
 import { Button } from "@/components/ui/button"
@@ -32,7 +32,7 @@ export function TrashDataTable({
   isLoading = false,
 }: TrashDataTableProps) {
 
-  const formatDate = (dateValue: any) => {
+  const formatDate = (dateValue: string | Date | { $date: string | number | Date } | null | undefined) => {
     try {
       let date: Date
       if (dateValue instanceof Date) {

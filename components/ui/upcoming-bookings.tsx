@@ -12,28 +12,30 @@ import {
   CheckCircle,
   AlertTriangle
 } from 'lucide-react';
-interface UpcomingBooking {
-  id: string;
-  name: string;
-  date_from: string;
-  date_to: string;
-  country: string;
-  pax: number;
-  agent_name: string;
-  agent_country: string;
-  created_by: string;
-  status: 'upcoming' | 'confirmed';
-  daysUntilStart: number;
-  duration: number;
-}
+// Keeping interface for future use
+// interface UpcomingBooking {
+//   id: string;
+//   name: string;
+//   date_from: string;
+//   date_to: string;
+//   country: string;
+//   pax: number;
+//   agent_name: string;
+//   agent_country: string;
+//   created_by: string;
+//   status: 'upcoming' | 'confirmed';
+//   daysUntilStart: number;
+//   duration: number;
+// }
 
-const getTimeUntilStart = (daysUntilStart: number): string => {
-  if (daysUntilStart === 0) return 'Today';
-  if (daysUntilStart === 1) return 'Tomorrow';
-  if (daysUntilStart <= 7) return `In ${daysUntilStart} days`;
-  if (daysUntilStart <= 30) return `In ${Math.ceil(daysUntilStart / 7)} weeks`;
-  return `In ${Math.ceil(daysUntilStart / 30)} months`;
-};
+// Keeping function for future use
+// const getTimeUntilStart = (daysUntilStart: number): string => {
+//   if (daysUntilStart === 0) return 'Today';
+//   if (daysUntilStart === 1) return 'Tomorrow';
+//   if (daysUntilStart <= 7) return `In ${daysUntilStart} days`;
+//   if (daysUntilStart <= 30) return `In ${Math.ceil(daysUntilStart / 7)} weeks`;
+//   return `In ${Math.ceil(daysUntilStart / 30)} months`;
+// };
 
 const getStatusBadge = (daysUntilStart: number) => {
   if (daysUntilStart === 0) {

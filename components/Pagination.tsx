@@ -29,7 +29,6 @@ export function Pagination({
 }: PaginationProps) {
   const getVisiblePages = () => {
     const delta = 2
-    const range = []
     const rangeWithDots = []
 
     // Always include first page

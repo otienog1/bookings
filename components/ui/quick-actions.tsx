@@ -1,10 +1,8 @@
 'use client';
 
 import { Users, Calendar, Settings, Zap } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
 interface QuickActionItem {

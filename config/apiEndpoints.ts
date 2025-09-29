@@ -29,7 +29,7 @@ export const API_ENDPOINTS = {
         DOCUMENTS: (id: string) => `/api/bookings/${id}/documents`,
         DOCUMENT: (bookingId: string, documentId: string) => `/api/bookings/${bookingId}/documents/${documentId}`,
         ITINERARY: (id: string) => `/api/bookings/${id}/itinerary`,
-        SHARE: (id: string) => `/api/share/${id}`
+        SHARE: (id: string) => `/api/bookings/${id}/share`
     },
 
     // Agent endpoints

@@ -11,6 +11,10 @@ const nextConfig = {
         source: '/api/auth/:path*',
         destination: (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000') + '/api/auth/:path*',
       },
+      {
+        source: '/api/scraper/:path*',
+        destination: (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000') + '/api/scraper/:path*',
+      },
       // Handle auth routes (without /api prefix) - these are the legacy auth routes
       {
         source: '/auth/:path*',

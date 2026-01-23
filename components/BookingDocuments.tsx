@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useDropzone, FileRejection } from 'react-dropzone';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Upload,
     File,
@@ -18,12 +20,14 @@ import {
     Trash2,
     Share,
     Copy,
-    Calendar,
     FileText,
     Image,
     AlertCircle,
     ExternalLink,
-    RefreshCw
+    Ticket,
+    Receipt,
+    MoreHorizontal,
+    Link as LinkIcon
 } from 'lucide-react';
 import { BookingDocument, ShareToken, DocumentUploadProgress } from '@/types/BookingTypes';
 import { useAuth } from './auth/AuthContext';
@@ -41,7 +45,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 // const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
 const MAX_FILES = 20;
 
-export const BookingDocuments: React.FC<BookingDocumentsProps> = ({ bookingId, bookingName }) => {
+export const BookingDocuments: React.FC<BookingDocumentsProps> = ({ bookingId }) => {
     const { token } = useAuth();
     const [documents, setDocuments] = useState<BookingDocument[]>([]);
     const [uploadProgress, setUploadProgress] = useState<DocumentUploadProgress[]>([]);
@@ -284,226 +288,304 @@ export const BookingDocuments: React.FC<BookingDocumentsProps> = ({ bookingId, b
         return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
     };
 
-    return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Documents Management Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
-                        Documents
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                        Upload and manage documents for {bookingName}
-                    </p>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    {error && (
-                        <Alert variant="destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    )}
+    // Count documents by category
+    const documentCounts = useMemo(() => {
+        const counts: Record<string, number> = {
+            'All': documents.length,
+            'Voucher': 0,
+            'Air Ticket': 0,
+            'Invoice': 0,
+            'Other': 0
+        };
+        documents.forEach(doc => {
+            counts[doc.category] = (counts[doc.category] || 0) + 1;
+        });
+        return counts;
+    }, [documents]);
 
-                    {/* File Upload Area */}
-                    <div
-                        {...getRootProps()}
-                        className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
-                            ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'}`}
-                    >
-                        <input {...getInputProps()} />
-                        <Upload className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
-                        <p className="text-lg font-medium mb-2">
-                            {isDragActive ? 'Drop files here' : 'Upload Documents'}
-                        </p>
-                        <p className="text-sm text-muted-foreground mb-4">
-                            Drag & drop files here or click to browse
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                            Supports PDF, JPG, PNG, DOCX • Max {formatFileSize(MAX_FILE_SIZE)} per file • Max {MAX_FILES} files
+    // Get category icon
+    const getCategoryIcon = (category: string) => {
+        switch (category) {
+            case 'Voucher': return <FileText className="h-4 w-4" />;
+            case 'Air Ticket': return <Ticket className="h-4 w-4" />;
+            case 'Invoice': return <Receipt className="h-4 w-4" />;
+            default: return <MoreHorizontal className="h-4 w-4" />;
+        }
+    };
+
+    // Filter documents by category
+    const [activeCategory, setActiveCategory] = useState<string>('All');
+    const filteredDocuments = useMemo(() => {
+        if (activeCategory === 'All') return documents;
+        return documents.filter(doc => doc.category === activeCategory);
+    }, [documents, activeCategory]);
+
+    return (
+        <Card>
+            <CardHeader className="pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <CardTitle className="flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            Documents & Files
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            {documents.length} file{documents.length !== 1 ? 's' : ''} uploaded
                         </p>
                     </div>
+                    <div className="flex items-center gap-2">
+                        {/* Share Link Quick Action */}
+                        {shareToken ? (
+                            <Button
+                                onClick={copyShareLink}
+                                variant="outline"
+                                size="sm"
+                                className="gap-2"
+                            >
+                                <LinkIcon className="h-4 w-4" />
+                                Copy Share Link
+                            </Button>
+                        ) : (
+                            <Button
+                                onClick={createShareToken}
+                                variant="outline"
+                                size="sm"
+                                className="gap-2"
+                            >
+                                <Share className="h-4 w-4" />
+                                Create Share Link
+                            </Button>
+                        )}
+                        {/* Upload trigger */}
+                        <div {...getRootProps()}>
+                            <input {...getInputProps()} />
+                            <Button size="sm" className="gap-2">
+                                <Upload className="h-4 w-4" />
+                                Upload
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </CardHeader>
 
-                    {/* Upload Progress */}
-                    {uploadProgress.length > 0 && (
-                        <div className="space-y-2">
-                            {uploadProgress.map((progress, index) => (
-                                <div key={index} className="space-y-1">
-                                    <div className="flex justify-between text-sm">
-                                        <span>{progress.filename}</span>
-                                        <span>{progress.progress}%</span>
+            <CardContent className="space-y-4">
+                {error && (
+                    <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                )}
+
+                {/* Upload Progress */}
+                {uploadProgress.length > 0 && (
+                    <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
+                        {uploadProgress.map((progress, index) => (
+                            <div key={index} className="space-y-1">
+                                <div className="flex justify-between text-sm">
+                                    <span className="truncate">{progress.filename}</span>
+                                    <span>{progress.progress}%</span>
+                                </div>
+                                <Progress value={progress.progress} className="h-2" />
+                                {progress.status === 'error' && (
+                                    <p className="text-xs text-destructive">{progress.error}</p>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Category Tabs */}
+                <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full">
+                    <TabsList className="grid w-full grid-cols-5 h-auto">
+                        <TabsTrigger value="All" className="flex flex-col sm:flex-row gap-1 py-2">
+                            <span>All</span>
+                            <Badge variant="secondary" className="text-xs">{documentCounts['All']}</Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value="Voucher" className="flex flex-col sm:flex-row gap-1 py-2">
+                            <FileText className="h-4 w-4 hidden sm:block" />
+                            <span className="text-xs sm:text-sm">Vouchers</span>
+                            <Badge variant="secondary" className="text-xs">{documentCounts['Voucher']}</Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value="Air Ticket" className="flex flex-col sm:flex-row gap-1 py-2">
+                            <Ticket className="h-4 w-4 hidden sm:block" />
+                            <span className="text-xs sm:text-sm">Tickets</span>
+                            <Badge variant="secondary" className="text-xs">{documentCounts['Air Ticket']}</Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value="Invoice" className="flex flex-col sm:flex-row gap-1 py-2">
+                            <Receipt className="h-4 w-4 hidden sm:block" />
+                            <span className="text-xs sm:text-sm">Invoices</span>
+                            <Badge variant="secondary" className="text-xs">{documentCounts['Invoice']}</Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value="Other" className="flex flex-col sm:flex-row gap-1 py-2">
+                            <span className="text-xs sm:text-sm">Other</span>
+                            <Badge variant="secondary" className="text-xs">{documentCounts['Other']}</Badge>
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value={activeCategory} className="mt-4">
+                        {loading ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                Loading documents...
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {/* Document List */}
+                                {filteredDocuments.length > 0 && (
+                                    <div className="space-y-2">
+                                        {filteredDocuments.map((document) => (
+                                            <div key={document.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                    <div className="p-2 bg-muted rounded">
+                                                        {getFileIcon(document.mimeType)}
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="font-medium truncate">{document.filename}</p>
+                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                            <Badge variant="outline" className="text-xs">
+                                                                {getCategoryIcon(document.category)}
+                                                                <span className="ml-1">{document.category}</span>
+                                                            </Badge>
+                                                            <span>•</span>
+                                                            <span>{formatFileSize(document.size)}</span>
+                                                            <span className="hidden sm:inline">•</span>
+                                                            <span className="hidden sm:inline">{formatDistanceToNow(new Date(document.uploadedAt), { addSuffix: true })}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-1">
+                                                    <Select
+                                                        value={document.category}
+                                                        onValueChange={(value) => updateDocumentCategory(document.id, value)}
+                                                    >
+                                                        <SelectTrigger className="w-28 h-8 text-xs">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {DOCUMENT_CATEGORIES.map(category => (
+                                                                <SelectItem key={category} value={category}>
+                                                                    {category}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+
+                                                    <Button
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="h-8 w-8"
+                                                        onClick={() => window.open(document.url, '_blank')}
+                                                    >
+                                                        <Download className="h-4 w-4" />
+                                                    </Button>
+
+                                                    <Button
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="h-8 w-8 text-destructive hover:text-destructive"
+                                                        onClick={() => handleDeleteClick(document.id)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                    <Progress value={progress.progress} className="h-2" />
-                                    {progress.status === 'error' && (
-                                        <p className="text-xs text-destructive">{progress.error}</p>
+                                )}
+
+                                {/* Dropzone - Always visible */}
+                                <div
+                                    {...getRootProps()}
+                                    className={`border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors
+                                        ${filteredDocuments.length > 0 ? 'p-4' : 'p-8'}
+                                        ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'}`}
+                                >
+                                    <input {...getInputProps()} />
+                                    {filteredDocuments.length === 0 ? (
+                                        <>
+                                            <Upload className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+                                            <p className="text-muted-foreground mb-2">
+                                                {activeCategory === 'All'
+                                                    ? 'No documents uploaded yet'
+                                                    : `No ${activeCategory.toLowerCase()}s uploaded`}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                Drag & drop or click to upload
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-2">
+                                                PDF, JPG, PNG, DOCX • Max {formatFileSize(MAX_FILE_SIZE)}
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                                            <Upload className="h-4 w-4" />
+                                            <span className="text-sm">Drop files here or click to upload more</span>
+                                        </div>
                                     )}
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                            </div>
+                        )}
+                    </TabsContent>
+                </Tabs>
 
-                    <Separator />
-
-                    {/* Itinerary URL */}
+                {/* Share Link & Itinerary URL - Collapsible Footer */}
+                <Separator />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Share Link Section */}
                     <div className="space-y-2">
-                        <Label htmlFor="itinerary">Client Safari Itinerary URL</Label>
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">Client Share Link</Label>
+                        {shareToken ? (
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    value={shareToken.shareUrl}
+                                    readOnly
+                                    className="text-xs h-8"
+                                />
+                                <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={copyShareLink}>
+                                    <Copy className="h-3 w-3" />
+                                </Button>
+                                <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={openShareLink}>
+                                    <ExternalLink className="h-3 w-3" />
+                                </Button>
+                            </div>
+                        ) : (
+                            <Button
+                                onClick={createShareToken}
+                                variant="outline"
+                                size="sm"
+                                className="w-full gap-2"
+                            >
+                                <Share className="h-4 w-4" />
+                                Generate Share Link
+                            </Button>
+                        )}
+                        {shareToken && (
+                            <p className="text-xs text-muted-foreground">
+                                Expires {formatDistanceToNow(new Date(shareToken.expiresAt), { addSuffix: true })}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Itinerary URL Section */}
+                    <div className="space-y-2">
+                        <Label htmlFor="itinerary" className="text-xs text-muted-foreground uppercase tracking-wide">
+                            Safari Portal Itinerary URL
+                        </Label>
                         <div className="flex gap-2">
                             <Input
                                 id="itinerary"
                                 placeholder="https://..."
                                 value={itineraryUrl}
                                 onChange={(e) => setItineraryUrl(e.target.value)}
+                                className="text-xs h-8"
                             />
-                            <Button onClick={saveItineraryUrl} variant="outline">
+                            <Button onClick={saveItineraryUrl} variant="outline" size="sm" className="h-8 shrink-0">
                                 Save
                             </Button>
                         </div>
                     </div>
-
-                    <Separator />
-
-                    {/* Share Link */}
-                    <div className="space-y-4">
-                        {shareToken ? (
-                            <>
-                                <div className="p-3 bg-muted rounded-lg space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-sm font-medium">Client Share Link</p>
-                                        <div className="flex gap-2">
-                                            <Button
-                                                onClick={copyShareLink}
-                                                variant="outline"
-                                                size="sm"
-                                                className="flex items-center gap-2"
-                                            >
-                                                <Copy className="h-4 w-4" />
-                                                Copy
-                                            </Button>
-                                            <Button
-                                                onClick={openShareLink}
-                                                variant="outline"
-                                                size="sm"
-                                                className="flex items-center gap-2"
-                                            >
-                                                <ExternalLink className="h-4 w-4" />
-                                                Open
-                                            </Button>
-                                        </div>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground break-all">{shareToken.shareUrl}</p>
-                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                        <span>Categories: {shareToken.allowedCategories?.join(', ')}</span>
-                                        <span>Expires: {formatDistanceToNow(new Date(shareToken.expiresAt), { addSuffix: true })}</span>
-                                    </div>
-                                    {shareToken.allowedCategories && !shareToken.allowedCategories.includes('Other') && (
-                                        <div className="pt-2 border-t">
-                                            <Button
-                                                onClick={createShareToken}
-                                                variant="secondary"
-                                                size="sm"
-                                                className="flex items-center gap-2"
-                                            >
-                                                <RefreshCw className="h-4 w-4" />
-                                                Update to Include All Categories
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                            </>
-                        ) : (
-                            <div className="p-3 bg-muted rounded-lg space-y-3">
-                                <p className="text-sm text-muted-foreground">No share link exists for this booking.</p>
-                                <Button
-                                    onClick={createShareToken}
-                                    variant="default"
-                                    size="sm"
-                                    className="flex items-center gap-2"
-                                >
-                                    <Share className="h-4 w-4" />
-                                    Create Share Link
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Uploaded Documents Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <File className="h-5 w-5" />
-                        Uploaded Documents ({documents.length})
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                        View and manage uploaded files
-                    </p>
-                </CardHeader>
-                <CardContent>
-                    {loading ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                            Loading documents...
-                        </div>
-                    ) : documents.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                            No documents uploaded yet
-                        </div>
-                    ) : (
-                        <div className="space-y-2">
-                            {documents.map((document) => (
-                                <div key={document.id} className="flex items-center justify-between p-3 border rounded-lg">
-                                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        {getFileIcon(document.mimeType)}
-                                        <div className="min-w-0 flex-1">
-                                            <p className="font-medium truncate">{document.filename}</p>
-                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                <span>{formatFileSize(document.size)}</span>
-                                                <span>•</span>
-                                                <Calendar className="h-3 w-3" />
-                                                <span>{formatDistanceToNow(new Date(document.uploadedAt), { addSuffix: true })}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                        <Select
-                                            value={document.category}
-                                            onValueChange={(value) => updateDocumentCategory(document.id, value)}
-                                        >
-                                            <SelectTrigger className="w-32">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {DOCUMENT_CATEGORIES.map(category => (
-                                                    <SelectItem key={category} value={category}>
-                                                        {category}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => window.open(document.url, '_blank')}
-                                        >
-                                            <Download className="h-4 w-4" />
-                                        </Button>
-
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => handleDeleteClick(document.id)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                </div>
+            </CardContent>
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -530,6 +612,6 @@ export const BookingDocuments: React.FC<BookingDocumentsProps> = ({ bookingId, b
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </Card>
     );
 };

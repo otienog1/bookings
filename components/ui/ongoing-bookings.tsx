@@ -121,24 +121,24 @@ export function OngoingBookings() {
               <div key={`skeleton-${index}`} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-green-600" />
-                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-4 rounded-full" />
+                    <Skeleton className="h-4 w-32" />
                   </div>
-                  <Skeleton className="h-5 w-16" />
+                  <Skeleton className="h-6 w-24 rounded-full" />
                 </div>
 
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  <Skeleton className="h-3 w-16" />
-                  <Users className="h-3 w-3 ml-2" />
-                  <Skeleton className="h-3 w-12" />
-                  <Clock className="h-3 w-3 ml-2" />
+                <div className="flex items-center gap-2 text-xs">
+                  <Skeleton className="h-3 w-3 rounded-full" />
                   <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-3 w-3 rounded-full ml-2" />
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-3 w-3 rounded-full ml-2" />
+                  <Skeleton className="h-3 w-24" />
                 </div>
 
                 <div className="flex justify-between items-center text-xs">
-                  <Skeleton className="h-3 w-16" />
-                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-3 w-28" />
+                  <Skeleton className="h-3 w-32" />
                 </div>
               </div>
             ))}

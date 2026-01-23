@@ -17,6 +17,7 @@ export interface Booking {
     user_id?: string | number;
     created_by?: string;
     notes?: string;
+    itinerary_id?: string;
     deleted_at?: string | null;
     is_deleted?: boolean;
     [key: string]: unknown;
